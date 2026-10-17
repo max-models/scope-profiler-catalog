@@ -13,10 +13,8 @@ Create a repository from this template (or fork it). In the new repository:
 1. In `docs/astro.config.mjs`, set `repo` to the repository's name, `owner` if it is not
    `max-models`, and the `title` and `description`. The base path of the site follows from
    `repo`.
-2. In `catalogue.yaml`, set `base` to `/` plus the same name, and in
-   `docs/src/content/docs/index.mdx` change the `/scope-profiler-catalog/` in the links. The
-   generated pages need the base path for their links, because the site's link check rejects
-   relative ones.
+2. In `catalogue.yaml`, set `base` to `/` plus the same name. The generated pages need the base
+   path for their links, because the site's link check rejects relative ones.
 3. In `pyproject.toml`, rename the project.
 4. Enable GitHub Pages with the source **GitHub Actions** (Settings, Pages).
 

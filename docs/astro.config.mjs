@@ -8,6 +8,8 @@ export default defineDocs({
 	repo: 'scope-profiler-catalog',
 	title: 'Profiling catalogue',
 	description: 'A catalogue of profiling runs, built with scope-profiler and Astro.',
+	// the front page is the catalogue's table of cases
+	astro: { redirects: { '/': '/catalogue/' } },
 	nav: [
 		{ label: 'Catalogue', link: '/catalogue/' },
 		{ label: 'Guide', link: '/guide/use-this-template/' },
