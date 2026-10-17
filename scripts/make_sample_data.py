@@ -120,7 +120,9 @@ def _extras(solve_ns):
     }
 
 
-def write_run(path: Path, ranks: int, *, solve_ms: float, comm_ms: float, seed: int, extras=False):
+def write_run(
+    path: Path, ranks: int, *, solve_ms: float, comm_ms: float, seed: int, extras=False
+):
     """Write one run of ``ranks`` ranks."""
     path.parent.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(seed)
@@ -174,7 +176,14 @@ def main() -> int:
             comm_ms=1.5 * math.log2(ranks),
             seed=100 + ranks,
         )
-    write_run(DATA / "turbulence" / "np1.h5", 1, solve_ms=90.0, comm_ms=0.0, seed=200, extras=True)
+    write_run(
+        DATA / "turbulence" / "np1.h5",
+        1,
+        solve_ms=90.0,
+        comm_ms=0.0,
+        seed=200,
+        extras=True,
+    )
     print(f"Wrote {len(list(DATA.rglob('*.h5')))} sample files to {DATA}")
     return 0
 
