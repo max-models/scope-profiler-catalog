@@ -3707,7 +3707,7 @@ wheels = [
 [[package]]
 name = "scope-profiler"
 version = "0.7.4"
-source = { git = "https://github.com/max-models/scope-profiler?branch=devel#9d6caf51ed05a01d727de527d4a08fcdc7dfb0d5" }
+source = { git = "https://github.com/max-models/scope-profiler?branch=devel#62d7a07b40c7c90416678a1c1997664eaf87f89f" }
 dependencies = [
     { name = "h5py" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -3732,9 +3732,13 @@ pproc = [
     { name = "pyarrow", version = "25.0.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "pyarrow", version = "26.0.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "pyvis" },
+    { name = "pyyaml" },
     { name = "snakeviz" },
     { name = "tabulate" },
     { name = "textual" },
+]
+site = [
+    { name = "pyyaml" },
 ]
 
 [[package]]
@@ -3752,7 +3756,7 @@ dev = [
     { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
     { name = "pre-commit" },
     { name = "ruff" },
-    { name = "scope-profiler", extra = ["pproc"] },
+    { name = "scope-profiler", extra = ["pproc", "site"] },
 ]
 docs = [
     { name = "h5py" },
@@ -3761,7 +3765,7 @@ docs = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
     { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
-    { name = "scope-profiler", extra = ["pproc"] },
+    { name = "scope-profiler", extra = ["pproc", "site"] },
 ]
 
 [package.metadata]
