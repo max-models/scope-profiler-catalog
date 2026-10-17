@@ -1,26 +1,26 @@
 ---
 title: Quickstart
-description: Run the command line entry point of template-python.
+description: Run the command line entry point of scope-profiler-catalog.
 ---
 
-First, ensure that `template-python` is [installed](/template-python/getting-started/installation/).
+First, ensure that `scope-profiler-catalog` is [installed](/scope-profiler-catalog/getting-started/installation/).
 
 ## Basic usage
 
 After installation, you can run the application with:
 
 ```bash
-template-python
+scope-profiler-catalog
 ```
 
-which calls `app.main.main` and prints a greeting.
+which calls `scope_profiler_catalog.main.main` and prints a greeting.
 
 ## Use the package from Python
 
 ```python
-from app.main import main
+from scope_profiler_catalog.main import main
 
 main()
 ```
 
-See the [API reference](/template-python/api/app/) for every module and function.
+See the [API reference](/scope-profiler-catalog/api/scope_profiler_catalog/) for every module and function.

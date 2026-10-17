@@ -2,5 +2,5 @@
 
 
 def main() -> None:
-    """Print a greeting; the entry point of the ``template-python`` command."""
+    """Print a greeting; the entry point of the ``scope-profiler-catalog`` command."""
     print("Hello, world")
