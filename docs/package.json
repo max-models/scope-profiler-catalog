@@ -12,13 +12,14 @@
     "build": "astro build",
     "preview": "astro preview",
     "check:mdx": "starlight-check-mdx",
-    "notebooks": "starlight-notebooks",
     "astro": "astro"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.42.6",
     "@max-models/starlight-theme": "github:max-models/starlight-theme#v0.3.1",
+    "@scope-profiler/plotly": "^0.4.0",
     "astro": "^7.3.8",
+    "plotly.js-dist-min": "^4.1.2",
     "sharp": "^0.35.3"
   }
 }

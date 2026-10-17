@@ -174,3 +174,7 @@ junit/
 # Quarto
 .quarto/
 README_files/
+
+# profiling files fetched by scripts/fetch_data.sh
+/data/*
+!/data/README.md

@@ -1,75 +1,41 @@
-[build-system]
-build-backend = "setuptools.build_meta"
-requires = [ "setuptools", "wheel" ]
+# Not a package: this repository is a template for profiling catalogue websites. The file exists
+# because the shared docs workflow installs the project with uv before it builds the site, and
+# to say which Python packages that needs.
 
 [project]
 name = "scope-profiler-catalog"
 version = "0.1.0"
-description = "Template python repository."
+description = "Template for profiling catalogue websites built with scope-profiler and Astro."
 readme = "README.md"
-keywords = [ "python" ]
 license = { file = "LICENSE.txt" }
 authors = [ { name = "Max" } ]
 requires-python = ">=3.10"
-classifiers = [
-  "Development Status :: 3 - Alpha",
-  "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: 3.14",
-]
-dependencies = [
-  "numpy",
-]
+dependencies = [  ]
 optional-dependencies.dev = [
-  "jupyterlab",
   "pre-commit",
-  "pyproject-fmt",
-  "pyright",
   "ruff",
-  "scope-profiler-catalog[docs,test]",
+  "scope-profiler-catalog[docs]",
 ]
 optional-dependencies.docs = [
-  "griffe",
+  "h5py",
+  # the notebook tooling of the shared docs workflow installs a kernel even without notebooks
   "ipykernel",
-  "matplotlib>=3.10.9",
-  "nbclient>=0.11",
-  "nbformat>=5.11.1",
+  "numpy",
+  "scope-profiler[pproc,site]",
 ]
-optional-dependencies.test = [ "pytest", "pytest-cov" ]
 urls.Source = "https://github.com/max-models/scope-profiler-catalog"
-scripts.scope-profiler-catalog = "scope_profiler_catalog.main:main"
 
-[tool.setuptools]
-package-data."*" = [ "py.typed" ]
-packages.find.where = [ "src" ]
+[tool.uv]
+package = false
+
+# `scope-profiler site` is not in a release yet: follow the development branch, and drop this
+# table once a scope-profiler release has it (then require that version above).
+[tool.uv.sources]
+scope-profiler = { git = "https://github.com/max-models/scope-profiler", branch = "devel" }
 
 [tool.ruff]
 target-version = "py310"
 line-length = 88
-extend-include = [ "*.ipynb" ]
-# pycodestyle, pyflakes, isort, pyupgrade, bugbear and pydocstyle
-lint.select = [ "B", "D", "E", "F", "I", "UP", "W" ]
+# pycodestyle, pyflakes, isort, pyupgrade and bugbear
+lint.select = [ "B", "E", "F", "I", "UP", "W" ]
 lint.ignore = [ "E501" ]  # line length is handled by the formatter
-lint.per-file-ignores."**/tests/**" = [ "D" ]
-lint.per-file-ignores."*.ipynb" = [ "D" ]
-lint.per-file-ignores."docs/tools/*" = [ "D" ]
-lint.pydocstyle.convention = "google"
-
-[tool.pyright]
-include = [ "src" ]
-exclude = [ "**/tests" ]
-pythonVersion = "3.10"
-typeCheckingMode = "standard"
-
-[tool.pytest]
-ini_options.pythonpath = [ "src" ]
-ini_options.testpaths = [ "src" ]
-ini_options.addopts = "-ra"
-
-[tool.coverage]
-run.omit = [ "*/tests/*" ]
-run.source = [ "scope_profiler_catalog" ]
-report.show_missing = true

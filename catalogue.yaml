@@ -1,0 +1,39 @@
+# The cases of the catalogue. `scope-profiler site catalogue.yaml -o docs` writes a page for
+# every case and every run; the file paths are relative to this file. Keys are documented at
+# https://max-models.github.io/scope-profiler/cli/#scope-profiler-site
+title: Profiling catalogue
+description: Sample profiling runs, to be replaced by the runs of your code.
+# "/" plus the repository name, the same as `repo` in docs/astro.config.mjs: the links between
+# the generated pages need it ("" for a site at the root of its domain)
+base: /scope-profiler-catalog
+
+defaults:
+  scaling: strong # strong, weak, both or none; what a case with several runs is scaled as
+
+cases:
+  - id: poisson-strong
+    title: Poisson solver, strong scaling
+    description: The same problem on 1 to 8 MPI ranks.
+    group: Solvers
+    tags: [cpu, strong-scaling]
+    info: {commit: "0000000", system: synthetic}
+    runs:
+      - {path: "data/poisson-strong/np*.h5"}
+
+  - id: advection-weak
+    title: Advection, weak scaling
+    description: The problem grows with the number of MPI ranks.
+    group: Solvers
+    tags: [cpu, weak-scaling]
+    scaling: weak
+    info: {commit: "0000000", system: synthetic}
+    runs:
+      - {path: "data/advection-weak/np*.h5"}
+
+  - id: turbulence
+    title: Turbulence, single run
+    description: One run, for the page of a single run.
+    group: Fields
+    tags: [cpu]
+    runs:
+      - {path: data/turbulence/np1.h5, label: baseline}
