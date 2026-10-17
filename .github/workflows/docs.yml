@@ -34,5 +34,5 @@ jobs:
         catalogue/solvers/poisson-strong/index.html
         catalogue/solvers/poisson-strong/np1/index.html
         catalogue/solvers/poisson-strong/np4/index.html
-        catalogue/solvers/poisson-strong/01-speedup.plot.json
+        catalogue/solvers/poisson-strong/01-speedup.0.plot.json
         catalogue/fields/turbulence/baseline/index.html

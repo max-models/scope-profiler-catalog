@@ -46,4 +46,4 @@ Push to `devel` and the docs workflow builds the site and deploys it.
 
 The pages in `docs/src/content/docs/catalogue/` and the chart data in `docs/public/catalogue/`
 are generated and ignored by git; everything else is yours to change, including the
-`ScopeChart` component in `docs/src/components/` that draws the charts.
+report components in `docs/src/components/report/`, which draw the pages from their data.

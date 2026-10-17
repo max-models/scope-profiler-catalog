@@ -1,0 +1,32 @@
+---
+// One line per compared run, with a link to its page.
+import './report.css';
+import Delta from './Delta.astro';
+const { data } = Astro.props;
+const { runs } = data.report;
+const links = data.links.runs;
+---
+<div class="sp-report not-content">
+	<div class="table-scroll">
+		<table class="runs-table">
+			<thead>
+				<tr><th>run</th><th>file</th><th>recorded</th><th>ranks</th>{runs.show_threads && <th>threads</th>}<th>wall time</th><th>vs baseline</th><th>page</th></tr>
+			</thead>
+			<tbody>
+				{runs.rows.map((row, index) => (
+					<tr>
+						<td><strong>{row.label}</strong></td>
+						{row.file ? <td class="run-file" title={row.file.path ?? undefined}><code>{row.file.name}</code></td> : <td>-</td>}
+						<td>{row.recorded ?? '-'}</td>
+						<td>{row.ranks}</td>
+						{runs.show_threads && <td>{row.threads ?? '-'}</td>}
+						<td>{row.wall_text}</td>
+						<td>{row.change.kind === 'base' ? <span class="badge base">baseline</span> : <Delta change={row.change} />}</td>
+						<td><a href={links[index]}>run page</a></td>
+					</tr>
+				))}
+			</tbody>
+		</table>
+	</div>
+	<p class="muted table-note">Each run's page is linked on the right.</p>
+</div>

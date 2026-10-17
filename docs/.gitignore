@@ -5,3 +5,5 @@ node_modules/
 # written by `scope-profiler site` from catalogue.yaml (regenerated in CI)
 src/content/docs/catalogue/
 public/catalogue/
+# the preview server that `make ui-smoke` starts
+.preview.pid

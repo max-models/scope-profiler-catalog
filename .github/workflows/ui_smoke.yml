@@ -1,0 +1,48 @@
+name: UI smoke
+
+# The docs workflow builds the site and checks that it deploys; this one opens it in a browser and
+# checks that the pages' scripts work: the charts draw, the region filter filters, a click
+# highlights a region and the comparison table switches (scripts/ui_smoke.py).
+
+on:
+  push:
+    branches: ["main", "devel"]
+  pull_request:
+    branches: ["main", "devel"]
+
+jobs:
+  ui-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install
+        run: |
+          uv sync --extra docs
+          cd docs && npm ci
+
+      - name: Build the site
+        run: |
+          bash scripts/fetch_data.sh
+          uv run scope-profiler site catalogue.yaml -o docs
+          cd docs && npx starlight-check-mdx && DOCS_PYTHON="$GITHUB_WORKSPACE/.venv/bin/python" npx astro build
+
+      - name: Install the browser
+        run: uvx --with playwright playwright install --with-deps chromium
+
+      - name: Check the pages in a browser
+        run: |
+          (cd docs && npx astro preview --port 4399 &) 
+          sleep 8
+          uv run --with playwright python scripts/ui_smoke.py http://localhost:4399/scope-profiler-catalog
