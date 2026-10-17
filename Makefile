@@ -1,59 +1,40 @@
-# Development environment (uv), README (Quarto) and the documentation site (docs/, Astro + Starlight).
-# Notebook tool: starlight-notebooks, from @max-models/starlight-theme (docs/node_modules).
-PYTHON ?= .venv/bin/python
-NOTEBOOKS = cd docs && $(DOCS_ENV) npx starlight-notebooks
-DOCS_ENV = DOCS_PYTHON=$(shell $(PYTHON) -c "import sys; print(sys.executable)")
-FORCE ?=
+# Development environment (uv) and the catalogue site (docs/, Astro + Starlight).
+DOCS_PYTHON = $(shell uv run python -c "import sys; print(sys.executable)")
 
-.PHONY: help install test lint readme readme-check docs-install docs-notebooks docs-examples docs-dev docs-build docs-preview docs-clean
+.PHONY: help install data catalogue check lint docs-install docs-dev docs-build docs-preview docs-clean
 
 help:  ## list the targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
 
-install:  ## uv sync with the dev extra, and the pre-commit hooks
+install:  ## uv sync with the dev extra, the npm packages and the pre-commit hooks
 	uv sync --extra dev
+	cd docs && npm ci
 	uv run pre-commit install
 
-test:  ## pytest with coverage
-	uv run pytest --cov .
+data:  ## fetch the profiling files into data/ (scripts/fetch_data.sh)
+	bash scripts/fetch_data.sh
 
-lint:  ## ruff and pyright
+check:  ## validate catalogue.yaml and the files it lists
+	uv run scope-profiler site catalogue.yaml --check
+
+catalogue: data  ## write the catalogue pages and chart data into docs/
+	uv run scope-profiler site catalogue.yaml -o docs
+
+lint:  ## ruff
 	uv run ruff check .
 	uv run ruff format --check .
-	uv run pyright src/
 
-readme:  ## render README.md from README.qmd with quarto
-	quarto render README.qmd --to gfm
-
-readme-check:  ## fail if README.md is out of date with README.qmd
-	$(MAKE) readme
-	git diff --exit-code README.md
-
-docs-install:  ## Python docs extra and the npm packages
-	$(PYTHON) -m pip install -e ".[docs]"
+docs-install:  ## the npm packages of the site
 	cd docs && npm ci
 
-docs-notebooks:  ## execute the changed tutorials and convert all of them (FORCE=1 reruns all)
-	$(NOTEBOOKS) execute $(if $(FORCE),--force,)
-	$(NOTEBOOKS) convert
+docs-dev: catalogue  ## live preview at http://localhost:4321/scope-profiler-catalog/
+	cd docs && DOCS_VALIDATE_LINKS=false npm run dev
 
-docs-examples:  ## run full Python examples and generate pages with their plots
-	$(PYTHON) docs/tools/examples.py
-
-docs-dev:  ## live preview at http://localhost:4321/scope-profiler-catalog/
-	$(NOTEBOOKS) convert
-	$(PYTHON) docs/tools/examples.py
-	cd docs && $(DOCS_ENV) DOCS_VALIDATE_LINKS=false npm run dev
-
-docs-build:  ## the static site in docs/dist, as in CI
-	$(NOTEBOOKS) convert
-	$(PYTHON) docs/tools/examples.py
-	cd docs && npm run check:mdx && $(DOCS_ENV) npm run build
+docs-build: catalogue  ## the static site in docs/dist, as in CI
+	cd docs && npm run check:mdx && npm run build
 
 docs-preview:  ## serve docs/dist
 	cd docs && npm run preview
 
-docs-clean:  ## remove generated pages, assets and build output
-	$(NOTEBOOKS) clean
-	rm -rf docs/src/content/docs/full-examples docs/public/full-examples
-	rm -rf docs/dist docs/.astro
+docs-clean:  ## remove the generated pages, chart data and build output
+	rm -rf docs/src/content/docs/catalogue docs/public/catalogue docs/dist docs/.astro

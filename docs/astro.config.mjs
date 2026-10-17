@@ -1,41 +1,29 @@
 // @ts-check
 // The shared max-models docs setup (@max-models/starlight-theme): served at
-// https://max-models.github.io/scope-profiler-catalog/, with math, the API reference and a link check.
+// https://max-models.github.io/scope-profiler-catalog/. A fork changes `repo` (and `owner`, `title`
+// and `description`) here, and nothing else in this file.
 import { defineDocs } from '@max-models/starlight-theme';
 
 export default defineDocs({
 	repo: 'scope-profiler-catalog',
-	title: 'scope-profiler-catalog',
-	description: 'Template repository for Python projects.',
-	pythonPackage: 'scope_profiler_catalog',
+	title: 'Profiling catalogue',
+	description: 'A catalogue of profiling runs, built with scope-profiler and Astro.',
 	nav: [
-		{ label: 'Getting started', link: '/getting-started/installation/' },
-		{ label: 'Tutorials', link: '/tutorials/' },
-		{ label: 'Full examples', link: '/full-examples/' },
-		{ label: 'Development', link: '/development/docs/' },
-		{ label: 'API', link: '/api/scope_profiler_catalog/' },
+		{ label: 'Catalogue', link: '/catalogue/' },
+		{ label: 'Guide', link: '/guide/use-this-template/' },
 	],
 	sidebar: [
 		{
-			label: 'Getting started',
+			label: 'Catalogue',
+			// written by `scope-profiler site` from catalogue.yaml
+			items: [{ autogenerate: { directory: 'catalogue' } }],
+		},
+		{
+			label: 'Guide',
 			items: [
-				{ label: 'Installation', slug: 'getting-started/installation' },
-				{ label: 'Quickstart', slug: 'getting-started/quickstart' },
-			],
-		},
-		{
-			label: 'Tutorials',
-			items: [{ autogenerate: { directory: 'tutorials' } }],
-		},
-		{
-			label: 'Full examples',
-			items: [{ autogenerate: { directory: 'full-examples' } }],
-		},
-		{
-			label: 'Development',
-			items: [
-				{ label: 'Building the docs', slug: 'development/docs' },
-				{ label: 'Publishing', slug: 'development/publishing' },
+				{ label: 'Use this template', slug: 'guide/use-this-template' },
+				{ label: 'The manifest', slug: 'guide/manifest' },
+				{ label: 'Data and the workflow', slug: 'guide/workflow' },
 			],
 		},
 	],

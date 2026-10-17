@@ -1,8 +1,8 @@
 name: Docs
 
-# The Astro + Starlight site in docs/: hand-written pages, the executed notebooks and the API
-# reference. Built on every push and pull request with the shared workflow of
-# max-models/starlight-theme; deployed to GitHub Pages from devel.
+# The Astro + Starlight site in docs/: the guide pages and the catalogue that `scope-profiler site`
+# writes from catalogue.yaml. Built on every push and pull request with the shared workflow of
+# max-models/starlight-theme; deployed to GitHub Pages from devel, and the live site is checked.
 
 on:
   push:
@@ -24,14 +24,15 @@ jobs:
   docs:
     uses: max-models/starlight-theme/.github/workflows/docs.yml@v0.3.1
     with:
-      pre-build: uv run python docs/tools/examples.py
+      notebooks: false
+      # fetch the profiling files, then write the catalogue pages and chart data
+      pre-build: bash scripts/fetch_data.sh && uv run scope-profiler site catalogue.yaml -o docs
       smoke-paths: |
-        getting-started/installation/index.html
-        tutorials/index.html
-        tutorials/example-tutorial/index.html
-        full-examples/index.html
-        full-examples/sine-wave/index.html
-        api/app/index.html
-        api/app/main/index.html
-        tutorials/example-tutorial/example_tutorial.ipynb
-        full-examples/sine-wave/plot-1.png
+        guide/use-this-template/index.html
+        catalogue/index.html
+        catalogue/index.json
+        catalogue/solvers/poisson-strong/index.html
+        catalogue/solvers/poisson-strong/np1/index.html
+        catalogue/solvers/poisson-strong/np4/index.html
+        catalogue/solvers/poisson-strong/01-speedup.plot.json
+        catalogue/fields/turbulence/baseline/index.html
