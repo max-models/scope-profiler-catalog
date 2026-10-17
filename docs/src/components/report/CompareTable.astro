@@ -1,0 +1,38 @@
+---
+// Every region's duration in every run, against the baseline: switch the metric, and order the
+// rows by the call tree or by the size of the change.
+import './report.css';
+import Delta from './Delta.astro';
+const { data } = Astro.props;
+const { table } = data.report;
+const tableId = 'sp-compare-table';
+const labels = table.labels;
+---
+<div class="sp-report not-content">
+	<div class="table-tools">
+		<span class="tools-label">Show</span>
+		{table.metrics.map((metric) => <button type="button" data-compare-table={tableId} data-compare-metric={metric.key} aria-pressed={String(metric.key === 'total')}>{metric.label}</button>)}
+		<span class="tools-label">Order</span>
+		<button type="button" data-compare-table={tableId} data-compare-sort="tree" aria-pressed="true">call tree</button>
+		<button type="button" data-compare-table={tableId} data-compare-sort="change" aria-pressed="false">largest change</button>
+	</div>
+	<div class="table-scroll">
+		<table class="compare-table metric-total" id={tableId}>
+			<thead>
+				<tr><th>region</th><th>{labels[0]}</th>{labels.slice(1).map((label) => <><th>{label}</th><th>vs {labels[0]}</th></>)}</tr>
+			</thead>
+			<tbody>
+				{table.rows.map((row) => (
+					<tr class="select-row" data-region={row.name} data-filter-region={row.name} data-order={row.order} {...Object.fromEntries(Object.entries(row.sizes).map(([metric, size]) => [`data-change-${metric}`, size === null ? '' : String(size)]))}>
+						<td title={row.title}><span class="cmp-cell"><span class="cmp-name" style={`padding-left:${(1.1 * row.depth).toPrecision(3)}em`}>{row.name}</span></span></td>
+						{row.cells.map((cell, index) => (<>
+							<td>{table.metrics.map((metric) => <span data-m={metric.key}>{cell.values[metric.key]}</span>)}</td>
+							{index > 0 && <td>{table.metrics.map((metric) => <span data-m={metric.key}><Delta change={cell.changes[metric.key]} /></span>)}</td>}
+						</>))}
+					</tr>
+				))}
+			</tbody>
+		</table>
+	</div>
+	<p class="muted table-note">{table.per_rank ? 'The runs have different rank counts, so total and own times are per rank: each region\'s time divided by the ranks that ran it. ' : ''}Regions are matched by call path. <em>own</em> is the time outside nested regions, so own-time changes add up to the change in the session. Changes under 2% are greyed out; hover a change for its size in seconds. Click a row to highlight the region in the charts.</p>
+</div>

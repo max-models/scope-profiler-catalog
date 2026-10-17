@@ -1,0 +1,39 @@
+---
+// The charts of a report page: collapsible panels, each drawn from the plot-data file that
+// `scope-profiler site` wrote, in the colours of the site theme. The panels follow the page's
+// region filter, Regions/Depth sliders and highlighted region (see charts.js).
+import './report.css';
+import plotly from 'plotly.js-dist-min/package.json';
+const { data } = Astro.props;
+const charts = data.charts;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const parts = (panel) => panel.description.split('{axis}');
+---
+<div class="sp-report not-content" id="sp-charts" data-region-index={JSON.stringify(charts.region_index)} data-plotly-version={plotly.version}>
+	{charts.panels.length > 0 && (
+		<div class="chart-controls" aria-label="Chart display controls">
+			<button type="button" data-chart-action="expand">Expand all charts</button>
+			<button type="button" data-chart-action="collapse">Collapse all charts</button>
+		</div>
+	)}
+	{charts.panels.map((panel) => (
+		<details class="chart-panel" open={panel.open}>
+			<summary><span class="chart-heading" role="heading" aria-level="3">{panel.title}</span></summary>
+			{panel.description && <p class="muted">{parts(panel).map((piece, index) => <>{index > 0 && <span data-axis-label>{panel.axis}</span>}{piece}</>)}</p>}
+			<div class="chart-tools">
+				{panel.variants && (<>
+					<span class="tools-label" id={`${panel.id}-axis`}>x-axis</span>
+					{panel.variants.map((variant, position) => <button type="button" class="chart-axis" data-chart={panel.id} data-axis={position} aria-describedby={`${panel.id}-axis`} aria-pressed={String(position === panel.default_variant)}>{variant.label}</button>)}
+				</>)}
+				<button type="button" class="chart-open" data-chart={panel.id} title="Open this chart on its own page">Open in new tab ↗</button>
+			</div>
+			<div class:list={['chart', { 'chart-duration': panel.duration }]} id={panel.id} data-src={`${base}${panel.src}`} data-title={panel.title} data-options={JSON.stringify(panel.options)} data-variants={panel.variants ? JSON.stringify(panel.variants.map((variant) => ({ label: variant.label, src: `${base}${variant.src}` }))) : undefined} data-default-variant={panel.default_variant ?? undefined}></div>
+		</details>
+	))}
+	{charts.notes.length > 0 && <p class="muted">Unavailable chart(s): {charts.notes.join('; ')}</p>}
+	{charts.panels.length === 0 && charts.notes.length === 0 && <p class="muted">No charts could be rendered.</p>}
+</div>
+
+<script>
+	import './charts.js';
+</script>

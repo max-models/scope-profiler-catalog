@@ -1,0 +1,13 @@
+---
+// The run's recorded metadata.
+import './report.css';
+const { data } = Astro.props;
+const rows = data.report.metadata;
+---
+<div class="sp-report not-content">
+	{rows.length === 0 ? (
+		<p class="muted">No metadata recorded.</p>
+	) : (
+		<table class="meta-table"><tbody>{rows.map(([key, value]) => <tr><th>{key}</th><td><code>{value}</code></td></tr>)}</tbody></table>
+	)}
+</div>

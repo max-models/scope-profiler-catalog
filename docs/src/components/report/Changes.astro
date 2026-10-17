@@ -1,0 +1,50 @@
+---
+// Each run against the baseline: headline numbers and the largest own-time changes.
+import './report.css';
+const { data } = Astro.props;
+const { candidates } = data.report;
+const kpi = (title, value, detail, tone) => ({ title, value, detail, tone });
+---
+<div class="sp-report not-content">
+	{candidates.map((candidate) => {
+		const wall = candidate.wall;
+		return (
+			<div class="compare-candidate">
+				<h3>{candidate.label} vs {candidate.base_label}</h3>
+				<div class="kpis">
+					<div class:list={['kpi', wall.tone]}>
+						<span class="kpi-label">Wall time</span>
+						<span class="kpi-value">{wall.before_text !== undefined ? `${wall.before_text} → ${wall.after_text}` : wall.after_text}</span>
+						{wall.before_text !== undefined && <span class="kpi-detail">{wall.pct_text} · {wall.speed}</span>}
+					</div>
+					{Object.entries(candidate.extremes).map(([title, extreme]) => (
+						<div class="kpi">
+							<span class="kpi-label">{title}</span>
+							<span class="kpi-value">{extreme ? <code>{extreme.name}</code> : 'none'}</span>
+							{extreme && <span class="kpi-detail">{extreme.sign}{extreme.delta_text} own time</span>}
+						</div>
+					))}
+				</div>
+				<div class="changes">
+					{[['Faster', candidate.improvements, 'faster'], ['Slower', candidate.regressions, 'slower']].map(([heading, items, tone]) => (
+						<div>
+							<h4>{heading}</h4>
+							{items.length === 0 ? <p class="muted">None.</p> : (
+								<ol class="change-list">
+									{items.map((item) => (
+										<li class="change-item" data-filter-region={item.name}>
+											<span class="hs-name">{item.outside ? <em>outside any region</em> : <strong>{item.name}</strong>}{item.context.length > 0 && <span class="hs-path">in {item.context.join(' › ')}</span>}</span>
+											<span class="change-track"><span class={`change-fill ${tone}`} style={`width:${item.width.toPrecision(3)}%`}></span></span>
+											<span class={`change-value delta-text ${tone}`}>{item.sign}{item.delta_text}<span class="muted">{item.pct_text}</span></span>
+										</li>
+									))}
+								</ol>
+							)}
+						</div>
+					))}
+				</div>
+			</div>
+		);
+	})}
+	<p class="muted table-note">Changes in own time - time outside nested regions - so each change is counted once, where it happened.</p>
+</div>

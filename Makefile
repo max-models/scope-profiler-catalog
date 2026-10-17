@@ -1,7 +1,7 @@
 # Development environment (uv) and the catalogue site (docs/, Astro + Starlight).
 DOCS_PYTHON = $(shell uv run python -c "import sys; print(sys.executable)")
 
-.PHONY: help install data catalogue check lint docs-install docs-dev docs-build docs-preview docs-clean
+.PHONY: help install data catalogue check lint ui-smoke docs-install docs-dev docs-build docs-preview docs-clean
 
 help:  ## list the targets
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
@@ -23,6 +23,11 @@ catalogue: data  ## write the catalogue pages and chart data into docs/
 lint:  ## ruff
 	uv run ruff check .
 	uv run ruff format --check .
+
+ui-smoke: docs-build  ## open the built site in a browser and check that its pages work (needs playwright)
+	cd docs && (npm run preview -- --port 4399 & echo $$! > .preview.pid)
+	sleep 5
+	uv run --with playwright python scripts/ui_smoke.py http://localhost:4399/scope-profiler-catalog; status=$$?; kill $$(cat docs/.preview.pid); rm -f docs/.preview.pid; exit $$status
 
 docs-install:  ## the npm packages of the site
 	cd docs && npm ci
