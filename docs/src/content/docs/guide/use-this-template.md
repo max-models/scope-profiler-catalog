@@ -3,8 +3,8 @@ title: Use this template
 description: Fork the template, describe your runs and publish a profiling catalogue.
 ---
 
-This repository is a template, not a library: it is not published to PyPI. A code such as
-struphy or gvec forks it once and keeps it as the home of its profiling results.
+This repository is a template, not a library: it is not published to PyPI. A simulation
+code forks it once and keeps it as the home of its profiling results.
 
 ## 1. Fork it
 

@@ -114,6 +114,19 @@ with sync_playwright() as playwright:
     )
     check("no script errors on a run page", not errors, errors[:3])
 
+    # One run's durations are stacked by default; the checkbox groups them.
+    page.goto(f"{BASE}/catalogue/solvers/poisson-strong/np4/", wait_until="networkidle")
+    page.wait_for_timeout(2000)
+    box = page.locator(".chart-stack-box").first
+    check("a run's durations are stacked by default", box.is_checked())
+    panel_id = box.get_attribute("data-chart")
+    box.uncheck()
+    page.wait_for_timeout(1500)
+    segments = page.evaluate(
+        f"[...new Set(document.getElementById('{panel_id}').data.map((t) => t.name))]"
+    )
+    check("unticking draws the bars without segments", "self" not in segments, segments)
+
     # The showcase run: detail rows, line profile, hardware counters.
     errors.clear()
     page.goto(f"{BASE}/catalogue/fields/turbulence/baseline/", wait_until="networkidle")
@@ -153,6 +166,107 @@ with sync_playwright() as playwright:
         "the comparison charts draw", page.locator(".chart.js-plotly-plot").count() >= 1
     )
     check("no script errors on a case page", not errors, errors[:3])
+
+    # Rank charts and the durations chart's "stack children" over the compared runs.
+    check(
+        "the comparison starts on a pair",
+        page.locator(".compare-candidate").count() == 1,
+    )
+    check(
+        "'every run' is unticked by default",
+        not page.locator("#sp-compare-all").is_checked(),
+    )
+    page.click("[data-chart-action=expand]")
+    page.wait_for_timeout(3000)
+    titles = page.locator(".chart-panel summary").all_inner_texts()
+    check(
+        "a comparison has the rank charts",
+        "Rank imbalance" in titles and "Rank heatmap" in titles,
+        titles,
+    )
+    check(
+        "they all draw",
+        page.locator(".chart.js-plotly-plot").count() == page.locator(".chart").count(),
+    )
+    durations = page.locator(
+        ".chart-panel", has=page.locator("summary", has_text="Region durations")
+    ).first
+    durations_id = durations.locator(".chart").get_attribute("id")
+
+    def names():
+        return page.evaluate(
+            f"[...new Set(document.getElementById('{durations_id}').data.map((t) => t.name))]"
+        )
+
+    check("runs are grouped by default", set(names()) == {"np1", "np8"}, names())
+    # The browser's builder stacks one run's segments only, so the comparison has no checkbox.
+    check(
+        "a comparison has no 'stack children'",
+        durations.locator(".chart-stack-box").count() == 0,
+    )
+
+    # What identifies each run can be written above its bars.
+    durations.locator(".bar-labels summary").click()
+    durations.locator(".bar-label-box[data-key=label]").check()
+    durations.locator(".bar-label-box[data-key=ranks]").check()
+    page.wait_for_timeout(1500)
+    texts = page.evaluate(
+        f"document.getElementById('{durations_id}').data.map((t) => t.text)"
+    )
+    check(
+        "the bars say which run they are",
+        texts
+        and texts[0]
+        and texts[0][0] == "np1 · 1 rank"
+        and texts[1][0] == "np8 · 8 ranks",
+        [t[:1] for t in texts],
+    )
+    durations.locator(".bar-label-box[data-key=value]").check()
+    page.wait_for_timeout(1500)
+    texts = page.evaluate(
+        f"document.getElementById('{durations_id}').data.map((t) => t.text)"
+    )
+    check(
+        "the bar's value can be added",
+        all(" · " in t[0] and t[0].endswith(("ms", "s")) for t in texts),
+        [t[:1] for t in texts],
+    )
+    for key in ("label", "ranks", "value"):
+        durations.locator(f".bar-label-box[data-key={key}]").uncheck()
+    page.wait_for_timeout(1200)
+    cleared = page.evaluate(
+        f"document.getElementById('{durations_id}').data.every((t) => !t.text)"
+    )
+    check("unticking removes the labels", cleared)
+
+    # "Open in new tab" draws the chart in the site's own colours, in either theme.
+    for theme in ("dark", "light"):
+        page.evaluate(f"document.documentElement.dataset.theme = '{theme}'")
+        page.wait_for_timeout(1200)
+        site_background = page.evaluate(
+            "getComputedStyle(document.documentElement).getPropertyValue('--sl-color-bg').trim()"
+        )
+        with page.context.expect_page() as popup_info:
+            durations.locator(".chart-open").click()
+        popup = popup_info.value
+        popup.wait_for_load_state("load")
+        popup.wait_for_timeout(2500)
+        background = popup.evaluate("getComputedStyle(document.body).backgroundColor")
+        paper = popup.evaluate(
+            "document.getElementById('chart')._fullLayout.paper_bgcolor"
+        )
+        check(
+            f"the new tab has the {theme} theme's background",
+            popup.evaluate(
+                "(c) => { const e = document.createElement('i'); e.style.color = c; document.body.append(e); return getComputedStyle(e).color }",
+                site_background,
+            )
+            == background
+            and paper == site_background,
+            (background, paper, site_background),
+        )
+        popup.close()
+    page.evaluate("document.documentElement.dataset.theme = 'dark'")
 
     # The sidebar lists a case once, not each of its runs.
     sidebar = page.locator(".sidebar-content a").all_inner_texts()
@@ -260,7 +374,93 @@ with sync_playwright() as playwright:
         same(in_page["table"], data["table"]),
     )
 
+    # The case's facts are metadata, not a table of their own; the runs table counts attached files.
+    page.goto(f"{BASE}/catalogue/solvers/vlasov-cpu-gpu/", wait_until="networkidle")
+    page.wait_for_timeout(2000)
+    headings = page.locator(".sl-markdown-content h2").all_inner_texts()
+    check(
+        "the case's info is under Metadata",
+        "Metadata" in headings and "Information" not in headings,
+        headings,
+    )
+    check(
+        "the metadata lists the case's commit",
+        "commit" in page.locator(".meta-table").inner_text(),
+    )
+    check(
+        "the runs table links the attached files",
+        page.locator(".runs-table a[href$='#files']").count() == 2,
+    )
+
+    # CPU vs GPU: the GPU run has GPU timings, and both runs carry their files.
+    page.goto(
+        f"{BASE}/catalogue/solvers/vlasov-cpu-gpu/gpu-node/", wait_until="networkidle"
+    )
+    page.wait_for_timeout(1500)
+    check(
+        "the GPU run has GPU columns",
+        page.locator("table.region-stats th[data-key=gpu_total]").count() == 1,
+    )
+    page.goto(
+        f"{BASE}/catalogue/solvers/vlasov-cpu-gpu/cpu-node/", wait_until="networkidle"
+    )
+    page.wait_for_timeout(1500)
+    check(
+        "the CPU run has none",
+        page.locator("table.region-stats th[data-key=gpu_total]").count() == 0,
+    )
+    check(
+        "the run's metadata starts with the case's",
+        page.locator(".meta-table tr").first.inner_text().startswith("commit"),
+    )
+    tabs = page.locator(".attached-files [role=tab]").all_inner_texts()
+    check(
+        "the case's script and the run's parameters are attached",
+        tabs == ["run.py", "cpu-node.yml"],
+        tabs,
+    )
+    check(
+        "the attached code is shown highlighted",
+        "ProfileManager" in page.locator(".attached-files").inner_text()
+        and page.locator(".attached-files .expressive-code").count() >= 1,
+    )
+    href = page.locator(".attached-files a[download]").first.get_attribute("href")
+    download = page.request.get(
+        f"http://localhost:{BASE.split(':')[2].split('/')[0]}{href}"
+    )
+    check(
+        "the attached file downloads",
+        download.ok and "ProfileManager" in download.text(),
+        href,
+    )
+
+    # A hybrid study offers every x-axis for its scaling charts.
+    page.goto(f"{BASE}/catalogue/solvers/poisson-hybrid/", wait_until="networkidle")
+    page.wait_for_timeout(2500)
+    hybrid = page.locator(
+        ".chart-panel", has=page.locator("summary", has_text="Speedup")
+    ).first
+    check(
+        "the x-axis can be ranks, nodes, threads or cores",
+        hybrid.locator(".chart-axis").all_inner_texts()
+        == ["MPI ranks", "nodes", "OpenMP threads", "MPI ranks × OpenMP threads"],
+        hybrid.locator(".chart-axis").all_inner_texts(),
+    )
+    check(
+        "the manifest's x-axis is the one it opens on",
+        hybrid.locator(".chart-axis[aria-pressed=true]").inner_text()
+        == "MPI ranks × OpenMP threads",
+    )
+    hybrid.locator(".chart-axis[data-axis='2']").click()
+    page.wait_for_timeout(1500)
+    check(
+        "switching the axis redraws the chart",
+        page.locator(".chart.js-plotly-plot").count() >= 1,
+    )
+
     # Axis scales: log2 and log10 on a numeric axis; none on a categorical one.
+    page.goto(f"{BASE}/catalogue/solvers/poisson-strong/", wait_until="networkidle")
+    page.wait_for_timeout(2500)
     page.goto(f"{BASE}/catalogue/solvers/poisson-strong/", wait_until="networkidle")
     page.wait_for_timeout(2500)
     speedup = page.locator(
@@ -286,6 +486,35 @@ with sync_playwright() as playwright:
         "log2 draws a log axis with ticks at powers of two",
         axis("y") == "log" and ticks and all(math.log2(t).is_integer() for t in ticks),
         (axis("y"), ticks),
+    )
+    # Each scale control sits at its axis: the y one above the y axis, the x one past its right end.
+    geometry = page.evaluate(
+        f"""(() => {{
+            const chart = document.getElementById('{chart_id}');
+            const box = chart.getBoundingClientRect();
+            const size = chart._fullLayout._size;
+            const frame = chart.parentElement;
+            return {{
+                plotTop: box.top + size.t,
+                plotLeft: box.left + size.l,
+                plotRight: box.left + size.l + size.w,
+                plotBottom: box.top + size.t + size.h,
+                y: frame.querySelector('.axis-scale-y').getBoundingClientRect().toJSON(),
+                x: frame.querySelector('.axis-scale-x').getBoundingClientRect().toJSON(),
+            }};
+        }})()"""
+    )
+    check(
+        "the y scale sits beside the top of the y axis",
+        abs(geometry["y"]["top"] - geometry["plotTop"]) < 6
+        and geometry["y"]["right"] <= geometry["plotLeft"] + 1,
+        geometry,
+    )
+    check(
+        "the x scale sits past the end of the x axis",
+        geometry["x"]["left"] >= geometry["plotRight"]
+        and geometry["x"]["bottom"] <= geometry["plotBottom"] + 4,
+        geometry["x"],
     )
     speedup.locator("button[data-scale-axis=y][data-scale=log10]").click()
     page.wait_for_timeout(1500)

@@ -3,11 +3,13 @@
 // Regions and Depth sliders, and the highlighted region (scopeProfilerOnRegionSelect), all
 // provided by client.js; a click on a chart highlights the region it shows.
 import { buildComparisonFigure, buildFigure } from '@scope-profiler/plotly';
+import { durationText } from './compare.js';
 
 const root = document.getElementById('sp-charts');
 
 if (root) {
 	const regionIndex = JSON.parse(root.dataset.regionIndex || '{}');
+	const runMeta = JSON.parse(root.dataset.runMeta || '{}');
 	const charts = [...root.querySelectorAll('.chart')].map((element) => ({
 		id: element.id,
 		element,
@@ -19,6 +21,8 @@ if (root) {
 		figure: null,
 		stale: false,
 		scale: { x: 'linear', y: 'linear' },
+		stack: element.dataset.stack ? JSON.parse(element.dataset.stack) : null,
+		barLabels: new Set(),
 	}));
 	let plotly = null;
 
@@ -162,9 +166,51 @@ if (root) {
 				typeof trace[axis].find((value) => value !== null && value !== undefined) === 'number',
 		);
 
+	// What identifies each run, written above its bars: the run's label, its MPI ranks, OpenMP threads,
+	// nodes, cores (ranks times threads) and wall time, and the bar's own value.
+	const BAR_LABELS = {
+		label: (meta) => meta.label,
+		ranks: (meta) => `${meta.ranks} rank${meta.ranks === 1 ? '' : 's'}`,
+		threads: (meta) => (meta.threads ? `${meta.threads} thread${meta.threads === 1 ? '' : 's'}` : null),
+		nodes: (meta) => (meta.nodes ? `${meta.nodes} node${meta.nodes === 1 ? '' : 's'}` : null),
+		cores: (meta) => (meta.cores ? `${meta.cores} core${meta.cores === 1 ? '' : 's'}` : null),
+		wall: (meta) => (meta.wall ? durationText(meta.wall) : null),
+	};
+
+	function labelBars(chart, figure) {
+		if (!chart.barLabels.size) return;
+		for (const trace of figure.data) {
+			const meta = runMeta[trace.name];
+			if (trace.type !== 'bar' || !meta || !Array.isArray(trace.y)) continue;
+			const fixed = Object.keys(BAR_LABELS)
+				.filter((key) => chart.barLabels.has(key))
+				.map((key) => BAR_LABELS[key](meta))
+				.filter(Boolean);
+			trace.text = trace.y.map((value) =>
+				[...fixed, ...(chart.barLabels.has('value') && typeof value === 'number' ? [durationText(value)] : [])].join(' · '),
+			);
+			// Written upright above the bar, at a fixed size, not shrunk to the bar's width.
+			trace.textposition = 'outside';
+			trace.textangle = -90;
+			trace.constraintext = 'none';
+			trace.cliponaxis = false;
+			trace.textfont = { ...(trace.textfont ?? {}), size: 11 };
+		}
+		// Room above the plot for them.
+		const margin = figure.layout.margin ?? {};
+		figure.layout.margin = { ...margin, t: Math.max(margin.t ?? 100, 150) };
+	}
+
 	/** Put `figure`'s axes on the chart's chosen scales; log2 is a log axis with ticks at powers of two. */
 	function applyScales(chart, figure) {
 		const scalable = { x: axisScalable(figure, 'x'), y: axisScalable(figure, 'y') };
+		// Room for the controls that sit at the axes: above the y axis, right of the x axis.
+		const margin = figure.layout.margin ?? {};
+		figure.layout.margin = {
+			...margin,
+			...(scalable.y ? { t: Math.max(margin.t ?? 100, 46) } : {}),
+			...(scalable.x ? { r: Math.max(margin.r ?? 80, 86) } : {}),
+		};
 		for (const axis of ['x', 'y']) {
 			if (!scalable[axis] || chart.scale[axis] === 'linear') continue;
 			const key = layoutKey(axis);
@@ -194,6 +240,23 @@ if (root) {
 		}
 	}
 
+	/** Put each axis's scale control at its axis: the y control beside the top of the y axis (stacked, so it fits the margin and keeps clear of the bar labels above the plot), the x control past the right end of the x axis. */
+	function placeScaleControls(chart) {
+		const size = chart.element._fullLayout?._size;
+		if (!size) return;
+		const frame = chart.element.parentElement;
+		const y = frame.querySelector('.axis-scale-y');
+		const x = frame.querySelector('.axis-scale-x');
+		if (y && !y.hidden) {
+			y.style.left = '0px';
+			y.style.top = `${size.t}px`;
+		}
+		if (x && !x.hidden) {
+			x.style.left = `${size.l + size.w + 10}px`;
+			x.style.top = `${Math.max(0, size.t + size.h - x.offsetHeight)}px`;
+		}
+	}
+
 	async function ensurePayload(chart) {
 		if (!chart.payload) {
 			const response = await fetch(chart.src);
@@ -217,9 +280,10 @@ if (root) {
 			plotly ??= (await import('plotly.js-dist-min')).default;
 			// The grouped bars of a comparison of many runs would be unreadable: draw the compared ones.
 			const compared = window.scopeProfilerComparedRuns;
+			const rowsKey = { durations: 'bars', imbalance: 'points', rank_heatmap: 'points' }[chart.payload.plot];
 			const shown =
-				compared && chart.payload.plot === 'durations' && Array.isArray(chart.payload.bars)
-					? { ...chart.payload, bars: chart.payload.bars.filter((bar) => compared.includes(bar.file)) }
+				compared && rowsKey && Array.isArray(chart.payload[rowsKey])
+					? { ...chart.payload, [rowsKey]: chart.payload[rowsKey].filter((row) => compared.includes(row.file)) }
 					: chart.payload;
 			let options =
 				activeTerms.length || limitedRegions ? { ...chart.options, filterRegion: chartFilter } : chart.options;
@@ -232,11 +296,16 @@ if (root) {
 			const { layout: extra, ...rest } = options;
 			const figure = highlightFigure(chart, build(shown, { ...rest, layout: extra, theme: theme() }), selectedRegion);
 			figure.layout = { ...figure.layout, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)' };
+			labelBars(chart, figure);
 			const scalable = applyScales(chart, figure);
 			chart.figure = figure;
 			target.classList.remove('chart-error');
 			const rendered = plotly.react(target, figure.data, figure.layout, { responsive: true, displaylogo: false });
 			showScaleControls(chart, scalable);
+			if (!target.dataset.scalePlacement) {
+				target.dataset.scalePlacement = 'true';
+				Promise.resolve(rendered).then(() => target.on('plotly_afterplot', () => placeScaleControls(chart)));
+			}
 			// A log2 axis needs the range Plotly chose, so its ticks follow the drawing.
 			Promise.resolve(rendered).then(() => {
 				const update = {};
@@ -251,6 +320,7 @@ if (root) {
 					figure.layout[key] = { ...figure.layout[key], tickmode: 'array', tickvals: values, ticktext: texts };
 				}
 				if (Object.keys(update).length) plotly.relayout(target, update);
+				placeScaleControls(chart);
 			});
 			if (!target.dataset.regionClickBound) {
 				target.dataset.regionClickBound = 'true';
@@ -321,16 +391,20 @@ if (root) {
 	const openInNewTab = (chart) => {
 		if (!chart.figure) return;
 		const version = root.dataset.plotlyVersion;
+		// The page is drawn in the site's colours, as the chart on this page is, whichever theme it is in.
+		const style = getComputedStyle(document.documentElement);
+		const background = style.getPropertyValue('--sl-color-bg').trim() || '#fff';
+		const foreground = style.getPropertyValue('--sl-color-text').trim() || '#000';
 		const figure = JSON.stringify({ data: chart.figure.data, layout: chart.figure.layout }).replace(/</g, '\\u003c');
 		const page = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapeHtml(chart.title)}</title><style>html, body { margin: 0; background: #fff; }
+<title>${escapeHtml(chart.title)}</title><style>html, body { margin: 0; background: ${escapeHtml(background)}; }
 #chart { width: 100vw; }</style></head><body><div id="chart"></div>
 <script crossorigin="anonymous" src="https://cdn.plot.ly/plotly-${escapeHtml(version)}.min.js"><\/script><script>
 const figure = ${figure};
 const target = document.getElementById("chart");
-const layout = { ...figure.layout, autosize: true, paper_bgcolor: "#fff", plot_bgcolor: "#fff",
-  title: figure.layout.title ?? { text: ${JSON.stringify(escapeHtml(chart.title))} } };
+const layout = { ...figure.layout, autosize: true, paper_bgcolor: ${JSON.stringify(background)}, plot_bgcolor: ${JSON.stringify(background)},
+  title: figure.layout.title ?? { text: ${JSON.stringify(escapeHtml(chart.title))}, font: { color: ${JSON.stringify(foreground)} } } };
 delete layout.width;
 if (!(layout.height > window.innerHeight)) { delete layout.height; target.style.height = "100vh"; }
 Plotly.newPlot(target, figure.data, layout, { responsive: true, displaylogo: false });
@@ -386,6 +460,33 @@ Plotly.newPlot(target, figure.data, layout, { responsive: true, displaylogo: fal
 		if (!chart) continue;
 		button.addEventListener('click', () => {
 			chart.scale[button.dataset.scaleAxis] = button.dataset.scale;
+			draw(chart);
+		});
+	}
+
+	// The menu closes when the reader clicks elsewhere.
+	document.addEventListener('click', (event) => {
+		for (const menu of document.querySelectorAll('.bar-labels[open]')) {
+			if (!menu.contains(event.target)) menu.open = false;
+		}
+	});
+
+	for (const box of document.querySelectorAll('.bar-label-box')) {
+		const chart = charts.find((item) => item.id === box.dataset.chart);
+		if (!chart) continue;
+		box.addEventListener('change', () => {
+			if (box.checked) chart.barLabels.add(box.dataset.key);
+			else chart.barLabels.delete(box.dataset.key);
+			draw(chart);
+		});
+	}
+
+	for (const box of document.querySelectorAll('.chart-stack-box')) {
+		const chart = charts.find((item) => item.id === box.dataset.chart);
+		if (!chart?.stack) continue;
+		box.addEventListener('change', () => {
+			chart.src = box.checked ? chart.stack.stacked_src : chart.stack.flat_src;
+			chart.payload = null;
 			draw(chart);
 		});
 	}
