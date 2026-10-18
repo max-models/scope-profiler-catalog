@@ -18,7 +18,8 @@ export default defineDocs({
 		{
 			label: 'Catalogue',
 			// written by `scope-profiler site` from catalogue.yaml
-			items: [{ autogenerate: { directory: 'catalogue' } }],
+			// one entry per case: the runs of a case are listed on its page, not in the sidebar
+			items: [{ autogenerate: { directory: 'catalogue', collapsed: true } }],
 		},
 		{
 			label: 'Guide',

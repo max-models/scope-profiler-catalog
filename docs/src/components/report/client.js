@@ -120,12 +120,20 @@ function selection() {
 		});
 	});
 
-	document.querySelectorAll('tr.select-row').forEach((row) => {
-		row.addEventListener('click', () => {
-			const region = row.dataset.region;
-			select(region === selectedRegion ? null : region, row.dataset.run, 'none');
-		});
+	// Delegated, because the comparison tables are drawn after the page loads.
+	document.addEventListener('click', (event) => {
+		const row = event.target.closest?.('tr.select-row');
+		if (!row) return;
+		const region = row.dataset.region;
+		select(region === selectedRegion ? null : region, row.dataset.run, 'none');
 	});
+
+	// Mark the selected region in rows drawn since the selection was made.
+	window.scopeProfilerMarkSelection = () => {
+		document.querySelectorAll(SELECTABLE).forEach((row) => {
+			row.classList.toggle('region-selected', selectedRegion !== null && owner(row).dataset.region === selectedRegion);
+		});
+	};
 
 	document.querySelectorAll('.hotspot').forEach((button) => {
 		button.addEventListener('click', () => select(button.dataset.region, button.dataset.run, 'scroll'));
@@ -284,6 +292,9 @@ function regionFilter() {
 		listener(terms());
 	};
 
+	// Re-apply the filter to elements drawn since (the comparison tables).
+	window.scopeProfilerRefilter = () => filterTables(terms());
+
 	let timer = null;
 	input.addEventListener('input', () => {
 		window.clearTimeout(timer);
@@ -321,54 +332,6 @@ function sortableTables() {
 	});
 }
 
-// Comparison table: which metric the cells show, and whether rows follow the call tree or the size
-// of the change.
-function compareTables() {
-	document.querySelectorAll('table.compare-table').forEach((table) => {
-		let metric = 'total';
-		let order = 'tree';
-		const tools = document.querySelectorAll(`[data-compare-table="${table.id}"]`);
-
-		function press(attribute, value) {
-			tools.forEach((button) => {
-				if (button.hasAttribute(attribute)) {
-					button.setAttribute('aria-pressed', String(button.getAttribute(attribute) === value));
-				}
-			});
-		}
-
-		function arrange() {
-			const body = table.tBodies[0];
-			const rows = Array.prototype.slice.call(body.rows);
-			const key = order === 'tree' ? 'order' : 'change' + metric.charAt(0).toUpperCase() + metric.slice(1);
-			rows.sort((a, b) => {
-				let av = parseFloat(a.dataset[key]);
-				let bv = parseFloat(b.dataset[key]);
-				av = isNaN(av) ? -1 : av;
-				bv = isNaN(bv) ? -1 : bv;
-				return order === 'tree' ? av - bv : bv - av;
-			});
-			rows.forEach((row) => body.appendChild(row));
-			table.classList.toggle('flat', order !== 'tree');
-		}
-
-		tools.forEach((button) => {
-			button.addEventListener('click', () => {
-				if (button.dataset.compareMetric) {
-					table.classList.remove('metric-' + metric);
-					metric = button.dataset.compareMetric;
-					table.classList.add('metric-' + metric);
-					press('data-compare-metric', metric);
-				} else {
-					order = button.dataset.compareSort;
-					press('data-compare-sort', order);
-				}
-				arrange();
-			});
-		});
-	});
-}
-
 function showAllButtons() {
 	document.querySelectorAll('[data-show-all]').forEach((button) => {
 		button.addEventListener('click', () => {
@@ -387,6 +350,5 @@ export function initReport() {
 	callTree();
 	regionFilter();
 	sortableTables();
-	compareTables();
 	showAllButtons();
 }

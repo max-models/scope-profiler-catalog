@@ -25,6 +25,12 @@ const parts = (panel) => panel.description.split('{axis}');
 					<span class="tools-label" id={`${panel.id}-axis`}>x-axis</span>
 					{panel.variants.map((variant, position) => <button type="button" class="chart-axis" data-chart={panel.id} data-axis={position} aria-describedby={`${panel.id}-axis`} aria-pressed={String(position === panel.default_variant)}>{variant.label}</button>)}
 				</>)}
+				{['x', 'y'].map((axis) => (
+					<span class="chart-scale" data-chart={panel.id} data-axis-name={axis} hidden>
+						<span class="tools-label">{axis}-scale</span>
+						{[['linear', 'linear'], ['log2', 'log2'], ['log10', 'log10']].map(([scale, label]) => <button type="button" class="chart-scale-button" data-chart={panel.id} data-scale-axis={axis} data-scale={scale} aria-pressed={String(scale === 'linear')} title={scale === 'linear' ? `Linear ${axis}-axis` : `Logarithmic ${axis}-axis, ticks at powers of ${scale === 'log2' ? 2 : 10}`}>{label}</button>)}
+					</span>
+				))}
 				<button type="button" class="chart-open" data-chart={panel.id} title="Open this chart on its own page">Open in new tab ↗</button>
 			</div>
 			<div class:list={['chart', { 'chart-duration': panel.duration }]} id={panel.id} data-src={`${base}${panel.src}`} data-title={panel.title} data-options={JSON.stringify(panel.options)} data-variants={panel.variants ? JSON.stringify(panel.variants.map((variant) => ({ label: variant.label, src: `${base}${variant.src}` }))) : undefined} data-default-variant={panel.default_variant ?? undefined}></div>
