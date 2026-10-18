@@ -350,7 +350,7 @@ function init() {
 	const allBox = document.getElementById('sp-compare-all');
 	const canShowAll = count <= ALL_RUNS_LIMIT;
 
-	const state = { base: 0, cand: count - 1, all: canShowAll && count <= 4, metric: 'total', order: 'tree' };
+	const state = { base: 0, cand: count - 1, all: false, metric: 'total', order: 'tree' };
 	const query = new URLSearchParams(window.location.search);
 	const fromQuery = (name) => (query.has(name) && labels.includes(query.get(name)) ? labels.indexOf(query.get(name)) : null);
 	state.base = fromQuery('base') ?? state.base;

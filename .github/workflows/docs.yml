@@ -35,4 +35,8 @@ jobs:
         catalogue/solvers/poisson-strong/np1/index.html
         catalogue/solvers/poisson-strong/np4/index.html
         catalogue/solvers/poisson-strong/01-speedup.0.plot.json
+        catalogue/solvers/poisson-hybrid/index.html
+        catalogue/solvers/vlasov-cpu-gpu/index.html
+        catalogue/solvers/vlasov-cpu-gpu/cpu-node/index.html
+        catalogue/solvers/vlasov-cpu-gpu/cpu-node/files/cpu-node.yml
         catalogue/fields/turbulence/baseline/index.html

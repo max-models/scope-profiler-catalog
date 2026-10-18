@@ -16,9 +16,15 @@
 	--sp-accent: var(--sl-color-accent);
 	--sp-hover: color-mix(in srgb, var(--sl-color-text) 7%, transparent);
 	--sp-selected: color-mix(in srgb, var(--sl-color-orange) 22%, transparent);
+	/* fills and bars */
 	--sp-good: var(--sl-color-green);
 	--sp-warn: var(--sl-color-orange);
 	--sp-bad: var(--sl-color-red);
+	/* text: Starlight's plain colours are pale in the light theme (contrast 1.6 on its background),
+	   its "high" variants are made for text (6 or more in both themes) */
+	--sp-good-text: var(--sl-color-green-high);
+	--sp-warn-text: var(--sl-color-orange-high);
+	--sp-bad-text: var(--sl-color-red-high);
 	--sp-bar: color-mix(in srgb, var(--sl-color-accent) 55%, transparent);
 	--sp-own-bar: color-mix(in srgb, var(--sl-color-blue, var(--sl-color-accent)) 55%, transparent);
 	--sp-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -157,13 +163,13 @@
 }
 .sp-report .kpi.warn .kpi-value,
 .sp-report .kpi.bad .kpi-value {
-	color: var(--sp-warn);
+	color: var(--sp-warn-text);
 }
 .sp-report .kpi.bad .kpi-value {
-	color: var(--sp-bad);
+	color: var(--sp-bad-text);
 }
 .sp-report .kpi.good .kpi-value {
-	color: var(--sp-good);
+	color: var(--sp-good-text);
 }
 .sp-report .findings {
 	margin: 0.5rem 0 1rem;
@@ -176,7 +182,7 @@
 	color: inherit;
 }
 .sp-report .flag {
-	color: var(--sp-warn);
+	color: var(--sp-warn-text);
 }
 
 /* Run header */
@@ -509,7 +515,7 @@
 	white-space: nowrap;
 }
 .sp-report .selection-status {
-	color: var(--sp-warn);
+	color: var(--sp-warn-text);
 	font-size: 0.9em;
 	white-space: nowrap;
 }
@@ -565,7 +571,7 @@
 	min-height: 680px;
 }
 .sp-report .chart-error {
-	color: var(--sp-bad);
+	color: var(--sp-bad-text);
 	padding: 1rem;
 }
 
@@ -809,7 +815,7 @@
 	padding: 0.2rem;
 }
 .sp-report .rank-matrix th.slowest {
-	color: var(--sp-bad);
+	color: var(--sp-bad-text);
 }
 .sp-report .rank-matrix tfoot td {
 	border-top: 2px solid var(--sp-line-strong);
@@ -933,11 +939,11 @@
 }
 .sp-report .faster .delta-text,
 .sp-report .delta-text.faster {
-	color: var(--sp-good);
+	color: var(--sp-good-text);
 }
 .sp-report .slower .delta-text,
 .sp-report .delta-text.slower {
-	color: var(--sp-bad);
+	color: var(--sp-bad-text);
 }
 .sp-report .same .delta-text,
 .sp-report .neutral .delta-text {
@@ -1034,4 +1040,95 @@
 }
 .sp-report .runs-table.show-all tbody tr.extra {
 	display: table-row;
+}
+
+.sp-report .chart-stack {
+	align-items: center;
+	display: inline-flex;
+	font-size: 0.9em;
+	gap: 0.3rem;
+	margin-right: 0.6rem;
+}
+
+.sp-report .file-head {
+	margin: 0.4rem 0;
+}
+
+/* The scale controls of a chart sit at its axes: the y one above the y axis, the x one beside the
+   right end of the x axis; charts.js places them from the plot area's geometry. */
+.sp-report .chart-frame {
+	position: relative;
+}
+.sp-report .axis-scale {
+	align-items: center;
+	display: flex;
+	font-size: 0.72rem;
+	gap: 0.15rem;
+	position: absolute;
+	z-index: 2;
+}
+.sp-report .axis-scale[hidden] {
+	display: none;
+}
+.sp-report .axis-scale-x,
+.sp-report .axis-scale-y {
+	align-items: stretch;
+	flex-direction: column;
+}
+.sp-report .axis-scale-label {
+	color: var(--sp-muted);
+	padding: 0 0.2rem;
+}
+.sp-report .axis-scale-x .axis-scale-label,
+.sp-report .axis-scale-y .axis-scale-label {
+	text-align: left;
+}
+.sp-report .chart-scale-button {
+	background: transparent;
+	border: 1px solid var(--sp-line-strong);
+	border-radius: 0.25rem;
+	color: var(--sp-text);
+	cursor: pointer;
+	font: inherit;
+	line-height: 1.2;
+	padding: 0.05rem 0.35rem;
+}
+.sp-report .chart-scale-button:hover {
+	background: var(--sp-hover);
+}
+.sp-report .chart-scale-button[aria-pressed='true'] {
+	background: var(--sp-accent);
+	border-color: var(--sp-accent);
+	color: var(--sl-color-text-invert);
+}
+
+/* "bar labels": which of a run's identifying facts a chart writes above its bars */
+.sp-report .bar-labels {
+	font-size: 0.9em;
+	margin: 0 0.6rem 0 0;
+	position: relative;
+}
+.sp-report .bar-labels summary {
+	border: 1px solid var(--sp-line-strong);
+	border-radius: 0.3rem;
+	cursor: pointer;
+	font-weight: 400;
+	padding: 0.15rem 0.6rem;
+}
+.sp-report .bar-labels summary:hover {
+	background: var(--sp-hover);
+}
+.sp-report .bar-labels-list {
+	background: var(--sp-bg);
+	border: 1px solid var(--sp-line-strong);
+	border-radius: 0.4rem;
+	box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+	display: grid;
+	gap: 0.15rem;
+	padding: 0.5rem 0.75rem;
+	position: absolute;
+	right: 0;
+	top: 100%;
+	white-space: nowrap;
+	z-index: 5;
 }

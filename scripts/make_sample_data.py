@@ -33,28 +33,87 @@ def solve(u, rhs, omega=0.8):
 """
 
 
-def _spans(calls):
-    """``{name: (starts, ends)}`` as the int64 arrays the writer takes."""
-    return {
-        name: (np.array(starts, dtype=np.int64), np.array(ends, dtype=np.int64))
-        for name, (starts, ends) in calls.items()
-        if starts
-    }
+RUN_SCRIPT = """\
+\"\"\"Landau damping of a Langmuir wave with a Vlasov-Ampere solver: the script both runs use.\"\"\"
+
+import sys
+
+import yaml
+from scope_profiler import ProfileManager
 
 
-def _rank_calls(rank_jitter, ranks, solve_ms, comm_ms):
-    """One rank's timeline: ``setup``, ten ``solve`` calls and the ``exchange`` after each."""
-    names = ("session", "simulation", "setup", "solve", "exchange")
+def main(parameter_file):
+    with open(parameter_file) as handle:
+        parameters = yaml.safe_load(handle)
+    with ProfileManager.session(label=parameters["label"]):
+        with ProfileManager.region("setup"):
+            state = initialise(parameters)
+        for _ in range(parameters["steps"]):
+            with ProfileManager.region("solve"):
+                state = advance(state, parameters["dt"])
+            with ProfileManager.region("exchange"):
+                exchange_halos(state)
+
+
+if __name__ == "__main__":
+    main(sys.argv[1])
+"""
+
+PARAMETERS = """\
+# Landau damping of a Langmuir wave, k = 0.5, 1 percent perturbation
+label: {device} node
+device: {device}
+mpi_ranks: {ranks}
+omp_threads: {threads}
+steps: 10
+dt: 0.05
+grid:
+  cells: [128, 128, 128]
+  particles_per_cell: 128000
+"""
+
+
+def _spans(calls, gpu=None):
+    """``{name: (starts, ends)}`` as the int64 arrays the writer takes.
+
+    A region in ``gpu`` (``{name: [nanoseconds per call]}``) also gets the time its calls
+    kept the GPU busy, as a third array.
+    """
+    gpu = gpu or {}
+    regions = {}
+    for name, (starts, ends) in calls.items():
+        if not starts:
+            continue
+        arrays = (np.array(starts, dtype=np.int64), np.array(ends, dtype=np.int64))
+        if name in gpu:
+            arrays = (*arrays, np.array(gpu[name], dtype=np.int64))
+        regions[name] = arrays
+    return regions
+
+
+def _rank_calls(rank_jitter, ranks, solve_ms, comm_ms, gpu=False):
+    """One rank's timeline, and its GPU times: ``setup``, ten ``solve`` calls and the
+    ``exchange`` after each; on a GPU also the ``copy_to_device`` before the first."""
+    names = ("session", "simulation", "setup", "copy_to_device", "solve", "exchange")
     calls = {name: ([], []) for name in names}
+    gpu_ns = {"solve": [], "copy_to_device": []} if gpu else {}
     setup = int(4 * MS)
     clock = 2 * MS
     calls["setup"][0].append(clock)
     calls["setup"][1].append(clock + setup)
     clock += setup
+    if gpu:
+        copy = int(3 * MS)
+        calls["copy_to_device"][0].append(clock)
+        calls["copy_to_device"][1].append(clock + copy)
+        gpu_ns["copy_to_device"].append(int(copy * 0.85))
+        clock += copy
     for _ in range(10):
         work = int(solve_ms * MS * rank_jitter)
         calls["solve"][0].append(clock)
         calls["solve"][1].append(clock + work)
+        if gpu:
+            gpu_ns["solve"].append(int(work * 0.93))
         clock += work
         if ranks > 1:
             wait = int(comm_ms * MS)
@@ -65,7 +124,7 @@ def _rank_calls(rank_jitter, ranks, solve_ms, comm_ms):
     calls["simulation"][1].append(clock)
     calls["session"][0].append(0)
     calls["session"][1].append(clock + 2 * MS)
-    return {"scope_profiler.session": calls.pop("session"), **calls}
+    return {"scope_profiler.session": calls.pop("session"), **calls}, gpu_ns
 
 
 def _extras(solve_ns):
@@ -121,20 +180,29 @@ def _extras(solve_ns):
 
 
 def write_run(
-    path: Path, ranks: int, *, solve_ms: float, comm_ms: float, seed: int, extras=False
+    path: Path,
+    ranks: int,
+    *,
+    solve_ms: float,
+    comm_ms: float,
+    seed: int,
+    extras=False,
+    threads: int = 1,
+    gpu: bool = False,
+    chip: str = "synthetic CPU",
 ):
-    """Write one run of ``ranks`` ranks."""
+    """Write one run of ``ranks`` MPI ranks of ``threads`` OpenMP threads each, on a GPU or not."""
     path.parent.mkdir(parents=True, exist_ok=True)
     rng = np.random.default_rng(seed)
     metadata = {
         "mpi_size": ranks,
-        "omp_num_threads": 1,
-        "num_nodes": max(1, math.ceil(ranks / 4)),
-        "total_cores": ranks,
+        "omp_num_threads": threads,
+        "num_nodes": max(1, math.ceil(ranks * threads / 4)),
+        "total_cores": ranks * threads,
         "timestamp": "2026-10-17T12:00:00Z",
         "scope_profiler_version": "sample",
         "platform": "synthetic",
-        "chip_information": "synthetic CPU",
+        "chip_information": chip,
     }
     with ProfilingWriter(path, metadata) as writer:
         for rank in range(ranks):
@@ -142,10 +210,11 @@ def write_run(
             payload = {}
             if extras and rank == 0:
                 payload = _extras(int(solve_ms * MS * 10 * jitter))
+            calls, gpu_ns = _rank_calls(jitter, ranks, solve_ms, comm_ms, gpu)
             writer.write_rank(
                 rank,
                 RankPayload(
-                    regions=_spans(_rank_calls(jitter, ranks, solve_ms, comm_ms)),
+                    regions=_spans(calls, gpu_ns),
                     likwid=payload.get("likwid", {}),
                     likwid_environment={},
                     perf_events=payload.get("perf_events"),
@@ -176,6 +245,45 @@ def main() -> int:
             comm_ms=1.5 * math.log2(ranks),
             seed=100 + ranks,
         )
+    # Hybrid scaling: ranks and threads grow together, so the scaling charts can be drawn over
+    # MPI ranks, nodes, OpenMP threads or their product.
+    for ranks, threads in ((1, 1), (2, 1), (2, 2), (4, 2), (4, 4), (8, 4)):
+        write_run(
+            DATA / "poisson-hybrid" / f"{ranks}r-{threads}t.h5",
+            ranks,
+            threads=threads,
+            solve_ms=80.0 / (ranks * threads**0.8),
+            comm_ms=0.5 * math.log2(ranks) if ranks > 1 else 0.0,
+            seed=300 + 10 * ranks + threads,
+        )
+    # The same problem on a CPU node and on a GPU node; the GPU run records how long the GPU was
+    # busy in each call, and what it spends on moving data to it.
+    folder = DATA / "vlasov-cpu-gpu"
+    write_run(
+        folder / "cpu-node.h5",
+        8,
+        threads=2,
+        solve_ms=34.0,
+        comm_ms=1.4,
+        seed=400,
+        chip="synthetic 2x64-core CPU node",
+    )
+    write_run(
+        folder / "gpu-node.h5",
+        4,
+        solve_ms=7.0,
+        comm_ms=0.6,
+        seed=401,
+        gpu=True,
+        chip="synthetic 4-GPU node",
+    )
+    (folder / "run.py").write_text(RUN_SCRIPT)
+    (folder / "cpu-node.yml").write_text(
+        PARAMETERS.format(device="cpu", ranks=8, threads=2)
+    )
+    (folder / "gpu-node.yml").write_text(
+        PARAMETERS.format(device="gpu", ranks=4, threads=1)
+    )
     write_run(
         DATA / "turbulence" / "np1.h5",
         1,

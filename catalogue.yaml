@@ -30,6 +30,28 @@ cases:
     runs:
       - {path: "data/advection-weak/np*.h5"}
 
+  - id: poisson-hybrid
+    title: Poisson solver, hybrid MPI + OpenMP
+    description: MPI ranks and OpenMP threads scaled together; the scaling charts can be drawn over ranks, nodes, threads or cores.
+    group: Solvers
+    tags: [cpu, hybrid]
+    speedup_x: cores # the x-axis the scaling charts open on; the others are a button away
+    info: {commit: "0000000", system: synthetic}
+    runs:
+      - {path: "data/poisson-hybrid/*.h5"}
+
+  - id: vlasov-cpu-gpu
+    title: Vlasov-Ampere, CPU node vs GPU node
+    description: The same Landau damping problem on a CPU node and on a GPU node. The GPU run records how long the GPU was busy, and what it spends on copying data to it.
+    group: Solvers
+    tags: [cpu, gpu]
+    scaling: none
+    info: {commit: "0000000", system: synthetic}
+    files: [data/vlasov-cpu-gpu/run.py] # shown on the page of every run of the case
+    runs:
+      - {path: data/vlasov-cpu-gpu/cpu-node.h5, label: CPU node, files: [data/vlasov-cpu-gpu/cpu-node.yml]}
+      - {path: data/vlasov-cpu-gpu/gpu-node.h5, label: GPU node, files: [data/vlasov-cpu-gpu/gpu-node.yml]}
+
   - id: turbulence
     title: Turbulence, single run
     description: One run, for the page of a single run.
