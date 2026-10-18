@@ -20,6 +20,15 @@ cases:
     runs:
       - {path: "data/poisson-strong/np*.h5"}
 
+  - id: poisson-nightly
+    title: Poisson solver, nightly
+    description: The strong-scaling study above, run every evening; the case page is the latest night.
+    group: Solvers
+    tags: [cpu, nightly]
+    # One execution per directory below data/poisson-nightly; its meta.yml gives the date and commit.
+    executions:
+      path: "data/poisson-nightly/{execution}/np*.h5"
+
   - id: advection-weak
     title: Advection, weak scaling
     description: The problem grows with the number of MPI ranks.
@@ -48,9 +57,19 @@ cases:
     scaling: none
     info: {commit: "0000000", system: synthetic}
     files: [data/vlasov-cpu-gpu/run.py] # shown on the page of every run of the case
+    # Shown at the bottom of the case page; `url` links to where the code lives.
+    code:
+      - {path: data/vlasov-cpu-gpu/run.py, url: "https://github.com/max-models/scope-profiler"}
+      - {url: "https://github.com/max-models/scope-profiler-catalog", label: The catalogue template}
     runs:
-      - {path: data/vlasov-cpu-gpu/cpu-node.h5, label: CPU node, files: [data/vlasov-cpu-gpu/cpu-node.yml]}
-      - {path: data/vlasov-cpu-gpu/gpu-node.h5, label: GPU node, files: [data/vlasov-cpu-gpu/gpu-node.yml]}
+      - path: data/vlasov-cpu-gpu/cpu-node.h5
+        label: CPU node
+        files: [data/vlasov-cpu-gpu/cpu-node.yml]
+        images: [data/vlasov-cpu-gpu/cpu-node-density.svg]   # shown on the run's page
+      - path: data/vlasov-cpu-gpu/gpu-node.h5
+        label: GPU node
+        files: [data/vlasov-cpu-gpu/gpu-node.yml]
+        images: [data/vlasov-cpu-gpu/gpu-node-density.svg]
 
   - id: turbulence
     title: Turbulence, single run

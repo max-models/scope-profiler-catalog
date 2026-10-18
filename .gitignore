@@ -178,3 +178,7 @@ README_files/
 # profiling files fetched by scripts/fetch_data.sh
 /data/*
 !/data/README.md
+
+# A checkout of struphy's profiling-data and the manifest made from it (scripts/import_profiling_data.py)
+profiling-data/
+catalogue.profiling-data.yaml

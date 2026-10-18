@@ -240,6 +240,34 @@ if (root) {
 		}
 	}
 
+	/** The wall time of each run over the executions of a case: one line per run, in the site's colours. */
+	function trendFigure(payload) {
+		const css = getComputedStyle(document.documentElement);
+		const color = css.getPropertyValue('--sl-color-text').trim() || undefined;
+		const grid = css.getPropertyValue('--sl-color-gray-5').trim() || undefined;
+		const labels = payload.executions.map((execution) => execution.label);
+		return {
+			data: payload.series.map((series) => ({
+				type: 'scatter',
+				mode: 'lines+markers',
+				name: series.label,
+				x: labels,
+				y: series.values,
+				connectgaps: false,
+				hovertemplate: '%{x}<br>%{y:.4g} s<extra>%{fullData.name}</extra>',
+			})),
+			layout: {
+				title: { text: payload.title, font: { color } },
+				font: { color },
+				height: 460,
+				margin: { t: 90, r: 170, b: 90, l: 80 },
+				xaxis: { title: { text: 'execution' }, type: 'category', automargin: true, tickangle: -20, gridcolor: grid },
+				yaxis: { title: { text: 'wall time (s)' }, rangemode: 'tozero', gridcolor: grid },
+				legend: { orientation: 'v', x: 1.02, y: 1 },
+			},
+		};
+	}
+
 	/** Put each axis's scale control at its axis: the y control beside the top of the y axis (stacked, so it fits the margin and keeps clear of the bar labels above the plot), the x control past the right end of the x axis. */
 	function placeScaleControls(chart) {
 		const size = chart.element._fullLayout?._size;
@@ -292,7 +320,7 @@ if (root) {
 			}
 			// buildFigure dispatches region_statistics to the ranked summary; only buildComparisonFigure
 			// draws the signed per-region change.
-			const build = options.comparison ? buildComparisonFigure : buildFigure;
+			const build = chart.payload.plot === 'trend' ? trendFigure : options.comparison ? buildComparisonFigure : buildFigure;
 			const { layout: extra, ...rest } = options;
 			const figure = highlightFigure(chart, build(shown, { ...rest, layout: extra, theme: theme() }), selectedRegion);
 			figure.layout = { ...figure.layout, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)' };
