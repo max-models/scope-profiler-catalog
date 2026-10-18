@@ -982,3 +982,56 @@
 	border: 0;
 	font-size: 1.1em;
 }
+
+/* Choosing the runs to compare */
+.sp-report .compare-controls {
+	align-items: center;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 0.75rem;
+	margin: 0.5rem 0 1rem;
+}
+.sp-report .compare-controls label {
+	font-weight: 600;
+}
+.sp-report .compare-controls label.compare-all {
+	font-weight: 400;
+	margin-left: 0.5rem;
+}
+.sp-report .compare-controls select,
+.sp-report .compare-controls button {
+	background: transparent;
+	border: 1px solid var(--sp-line-strong);
+	border-radius: 0.3rem;
+	color: var(--sp-text);
+	font: inherit;
+	max-width: 18rem;
+	padding: 0.25rem 0.5rem;
+}
+.sp-report .compare-controls select option {
+	background: var(--sp-bg);
+	color: var(--sp-text);
+}
+.sp-report .compare-controls button {
+	cursor: pointer;
+}
+.sp-report .compare-controls button:hover {
+	background: var(--sp-hover);
+}
+
+.sp-report .chart-scale {
+	align-items: center;
+	display: inline-flex;
+	gap: 0.3rem;
+	margin-right: 0.6rem;
+}
+.sp-report .chart-scale[hidden] {
+	display: none;
+}
+
+.sp-report .runs-table tbody tr.extra {
+	display: none;
+}
+.sp-report .runs-table.show-all tbody tr.extra {
+	display: table-row;
+}

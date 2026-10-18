@@ -18,6 +18,7 @@ if (root) {
 		payload: null,
 		figure: null,
 		stale: false,
+		scale: { x: 'linear', y: 'linear' },
 	}));
 	let plotly = null;
 
@@ -149,6 +150,50 @@ if (root) {
 	const chartFilter = (region) =>
 		(!activeTerms.length || termFilter(region)) && (!limitedRegions || limitedRegions.has(region));
 
+	// Axis scales: linear, log2 or log10, for every numeric axis. A categorical axis (region names, the
+	// timeline's lanes) has nothing to scale, and its buttons stay hidden.
+	const layoutKey = (axis) => `${axis}axis`;
+	const axisScalable = (figure, axis) =>
+		!figure.layout[layoutKey(axis)]?.ticktext &&
+		figure.data.some(
+			(trace) =>
+				!['heatmap', 'icicle', 'sankey', 'pie'].includes(trace.type) &&
+				Array.isArray(trace[axis]) &&
+				typeof trace[axis].find((value) => value !== null && value !== undefined) === 'number',
+		);
+
+	/** Put `figure`'s axes on the chart's chosen scales; log2 is a log axis with ticks at powers of two. */
+	function applyScales(chart, figure) {
+		const scalable = { x: axisScalable(figure, 'x'), y: axisScalable(figure, 'y') };
+		for (const axis of ['x', 'y']) {
+			if (!scalable[axis] || chart.scale[axis] === 'linear') continue;
+			const key = layoutKey(axis);
+			const { range, tickvals, ticktext, tickmode, dtick, ...rest } = figure.layout[key] ?? {};
+			figure.layout[key] = { ...rest, type: 'log', autorange: true };
+		}
+		return scalable;
+	}
+
+	/** Ticks at powers of two across a log axis's range (`range` is in log10 units). */
+	function powersOfTwo(range) {
+		const low = Math.floor(range[0] / Math.log10(2) - 1e-9);
+		const high = Math.ceil(range[1] / Math.log10(2) + 1e-9);
+		const step = Math.max(1, Math.ceil((high - low) / 24));
+		const values = [];
+		for (let power = low; power <= high; power += step) values.push(2 ** power);
+		return values;
+	}
+
+	function showScaleControls(chart, scalable) {
+		const panel = chart.element.closest('details');
+		for (const group of panel.querySelectorAll('.chart-scale')) {
+			group.hidden = !scalable[group.dataset.axisName];
+		}
+		for (const button of panel.querySelectorAll('.chart-scale-button')) {
+			button.setAttribute('aria-pressed', String(chart.scale[button.dataset.scaleAxis] === button.dataset.scale));
+		}
+	}
+
 	async function ensurePayload(chart) {
 		if (!chart.payload) {
 			const response = await fetch(chart.src);
@@ -170,6 +215,12 @@ if (root) {
 		try {
 			await ensurePayload(chart);
 			plotly ??= (await import('plotly.js-dist-min')).default;
+			// The grouped bars of a comparison of many runs would be unreadable: draw the compared ones.
+			const compared = window.scopeProfilerComparedRuns;
+			const shown =
+				compared && chart.payload.plot === 'durations' && Array.isArray(chart.payload.bars)
+					? { ...chart.payload, bars: chart.payload.bars.filter((bar) => compared.includes(bar.file)) }
+					: chart.payload;
 			let options =
 				activeTerms.length || limitedRegions ? { ...chart.options, filterRegion: chartFilter } : chart.options;
 			if (chart.payload.plot === 'gantt' && regionLimits.maxDepth != null) {
@@ -179,11 +230,28 @@ if (root) {
 			// draws the signed per-region change.
 			const build = options.comparison ? buildComparisonFigure : buildFigure;
 			const { layout: extra, ...rest } = options;
-			const figure = highlightFigure(chart, build(chart.payload, { ...rest, layout: extra, theme: theme() }), selectedRegion);
+			const figure = highlightFigure(chart, build(shown, { ...rest, layout: extra, theme: theme() }), selectedRegion);
 			figure.layout = { ...figure.layout, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)' };
+			const scalable = applyScales(chart, figure);
 			chart.figure = figure;
 			target.classList.remove('chart-error');
 			const rendered = plotly.react(target, figure.data, figure.layout, { responsive: true, displaylogo: false });
+			showScaleControls(chart, scalable);
+			// A log2 axis needs the range Plotly chose, so its ticks follow the drawing.
+			Promise.resolve(rendered).then(() => {
+				const update = {};
+				for (const axis of ['x', 'y']) {
+					if (!scalable[axis] || chart.scale[axis] !== 'log2') continue;
+					const key = layoutKey(axis);
+					const values = powersOfTwo(target._fullLayout[key].range);
+					const texts = values.map((value) => (value >= 1 ? String(value) : `1/${1 / value}`));
+					update[`${key}.tickmode`] = 'array';
+					update[`${key}.tickvals`] = values;
+					update[`${key}.ticktext`] = texts;
+					figure.layout[key] = { ...figure.layout[key], tickmode: 'array', tickvals: values, ticktext: texts };
+				}
+				if (Object.keys(update).length) plotly.relayout(target, update);
+			});
 			if (!target.dataset.regionClickBound) {
 				target.dataset.regionClickBound = 'true';
 				Promise.resolve(rendered).then(() =>
@@ -229,6 +297,9 @@ if (root) {
 			else plotly?.Plots.resize(chart.element);
 		});
 	}
+
+	// Redraw when the compared runs change.
+	window.addEventListener('scopeprofiler:compared', scheduleRedraw);
 
 	// Redraw on a switch between light and dark.
 	new MutationObserver(scheduleRedraw).observe(document.documentElement, {
@@ -308,6 +379,15 @@ Plotly.newPlot(target, figure.data, layout, { responsive: true, displaylogo: fal
 			timer = window.setTimeout(apply, 150);
 		});
 		slider.addEventListener('change', apply);
+	}
+
+	for (const button of document.querySelectorAll('.chart-scale-button')) {
+		const chart = charts.find((item) => item.id === button.dataset.chart);
+		if (!chart) continue;
+		button.addEventListener('click', () => {
+			chart.scale[button.dataset.scaleAxis] = button.dataset.scale;
+			draw(chart);
+		});
 	}
 
 	// The scaling charts' x-axis buttons: each swaps in the data computed for that axis, and the

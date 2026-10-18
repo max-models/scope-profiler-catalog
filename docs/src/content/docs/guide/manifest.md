@@ -54,10 +54,16 @@ filters the regions of every table and chart, and a click on a region highlights
   site, tags, per-rank breakdown and line profile), the load balance and rank comparison of runs
   on several ranks, the line profiles of regions outside the table, hardware counters, the
   charts and the metadata.
-- A **case page** of several runs has the runs table, what changed against the baseline (the
-  largest improvements and regressions of each run), the durations table of every region in every
-  run (switch between total, own and per-call time and calls, in call-tree order or by the size of
-  the change) and the speedup, weak-scaling, change and duration charts.
+- A **case page** of several runs has the runs table, what changed between two runs (the largest
+  improvements and regressions), the durations table of every region in them (switch between total,
+  own and per-call time and calls, in call-tree order or by the size of the change) and the
+  speedup, weak-scaling, change and duration charts. A study can have hundreds of runs, so you
+  **pick the two runs to compare**, a baseline and a candidate; the choice is kept in the URL
+  (`?base=np4&cand=np64`), so a comparison can be shared. A study of up to twelve runs can also
+  show every run against the baseline.
+
+The sidebar lists each case once; a case page lists its runs, and a run page links the runs either
+side of it. Every chart has linear, log2 and log10 scales for its numeric axes.
 
 Unless the case sets `metadata: all`, only metadata that identifies a run is published, never the
 host name, user or environment.
