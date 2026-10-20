@@ -179,6 +179,6 @@ README_files/
 /data/*
 !/data/README.md
 
-# A checkout of struphy's profiling-data and the manifest made from it (scripts/import_profiling_data.py)
+# A checkout of a profiling-data repository and the manifest made from it (scripts/import_profiling_data.py)
 profiling-data/
 catalogue.profiling-data.yaml
