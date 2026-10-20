@@ -177,6 +177,13 @@ if (root) {
 		wall: (meta) => (meta.wall ? durationText(meta.wall) : null),
 	};
 
+	/** The timeline starts in one colour, so no region stands out until one is picked (the page's highlight then marks it). */
+	function neutralColors(figure) {
+		for (const trace of figure.data) {
+			if (trace.type === 'bar') trace.marker = { ...trace.marker, color: '#1f77b4' };
+		}
+	}
+
 	function labelBars(chart, figure) {
 		if (!chart.barLabels.size) return;
 		for (const trace of figure.data) {
@@ -322,7 +329,9 @@ if (root) {
 			// draws the signed per-region change.
 			const build = chart.payload.plot === 'trend' ? trendFigure : options.comparison ? buildComparisonFigure : buildFigure;
 			const { layout: extra, ...rest } = options;
-			const figure = highlightFigure(chart, build(shown, { ...rest, layout: extra, theme: theme() }), selectedRegion);
+			const built = build(shown, { ...rest, layout: extra, theme: theme() });
+			if (chart.payload.plot === 'gantt') neutralColors(built);
+			const figure = highlightFigure(chart, built, selectedRegion);
 			figure.layout = { ...figure.layout, paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)' };
 			labelBars(chart, figure);
 			const scalable = applyScales(chart, figure);
