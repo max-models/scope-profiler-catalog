@@ -8,6 +8,9 @@ const { data } = Astro.props;
 const dataset = data.report.dataset;
 const labels = dataset.runs.map((run) => run.label);
 const canShowAll = labels.length <= 12;
+// Runs from several executions are listed under the execution they belong to.
+const groups = [...new Set(dataset.runs.map((run) => run.group).filter(Boolean))];
+const options = (group) => labels.map((label, index) => ({ label, index, group: dataset.runs[index].group })).filter((option) => !groups.length || option.group === group);
 // "<" would end the script element that carries the data.
 const json = JSON.stringify(dataset).replaceAll('<', '\\u003c');
 ---
@@ -15,9 +18,9 @@ const json = JSON.stringify(dataset).replaceAll('<', '\\u003c');
 	<script type="application/json" id="sp-compare-data" set:html={json}></script>
 	<div class="compare-controls">
 		<label for="sp-compare-base">Baseline</label>
-		<select id="sp-compare-base">{labels.map((label, index) => <option value={index}>{label}</option>)}</select>
+		<select id="sp-compare-base">{groups.length ? groups.map((group) => <optgroup label={group}>{options(group).map((option) => <option value={option.index}>{option.label}</option>)}</optgroup>) : labels.map((label, index) => <option value={index}>{label}</option>)}</select>
 		<label for="sp-compare-cand">Candidate</label>
-		<select id="sp-compare-cand">{labels.map((label, index) => <option value={index}>{label}</option>)}</select>
+		<select id="sp-compare-cand">{groups.length ? groups.map((group) => <optgroup label={group}>{options(group).map((option) => <option value={option.index}>{option.label}</option>)}</optgroup>) : labels.map((label, index) => <option value={index}>{label}</option>)}</select>
 		<button type="button" id="sp-compare-swap" title="Swap the baseline and the candidate">⇄ swap</button>
 		{canShowAll && <label class="compare-all"><input type="checkbox" id="sp-compare-all" /> every run against the baseline</label>}
 	</div>
