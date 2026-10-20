@@ -293,7 +293,10 @@ def main() -> int:
         gpu=True,
         chip="synthetic 4-GPU node",
     )
-    for name, color, peak in (("cpu-node", "#1f77b4", 0.8), ("gpu-node", "#d62728", 0.55)):
+    for name, color, peak in (
+        ("cpu-node", "#1f77b4", 0.8),
+        ("gpu-node", "#d62728", 0.55),
+    ):
         (folder / f"{name}-density.svg").write_text(_density_figure(name, color, peak))
     (folder / "run.py").write_text(RUN_SCRIPT)
     (folder / "cpu-node.yml").write_text(
@@ -306,12 +309,15 @@ def main() -> int:
     # Each evening's directory has a meta.yml with its date and commit.
     commits = ("a1b2c3d", "b2c3d4e", "c3d4e5f", "d4e5f6a", "e5f6a7b")
     for night, (day, drift) in enumerate(
-        (("2026-10-13", 1.00), ("2026-10-14", 1.01), ("2026-10-15", 0.99), ("2026-10-16", 1.00), ("2026-10-17", 1.18))
+        (
+            ("2026-10-13", 1.00),
+            ("2026-10-14", 1.01),
+            ("2026-10-15", 0.99),
+            ("2026-10-16", 1.00),
+            ("2026-10-17", 1.18),
+        )
     ):
         for ranks in (1, 2, 4):
-            (DATA / "poisson-nightly" / day / "meta.yml").write_text(
-                f"date: {day}\ninfo:\n  commit: {commits[night]}\n"
-            )
             write_run(
                 DATA / "poisson-nightly" / day / f"np{ranks}.h5",
                 ranks,
@@ -319,6 +325,9 @@ def main() -> int:
                 comm_ms=0.5 * math.log2(ranks),
                 seed=500 + 10 * night + ranks,
             )
+        (DATA / "poisson-nightly" / day / "meta.yml").write_text(
+            f"date: {day}\ninfo:\n  commit: {commits[night]}\n"
+        )
     write_run(
         DATA / "turbulence" / "np1.h5",
         1,

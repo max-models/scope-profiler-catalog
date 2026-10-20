@@ -42,7 +42,9 @@ def _scaling(identifier: str) -> str:
     return "strong"
 
 
-def _execution(directory: Path, meta: dict, manifest_dir: Path, images: list[str]) -> dict:
+def _execution(
+    directory: Path, meta: dict, manifest_dir: Path, images: list[str]
+) -> dict:
     general = meta["general_information"]
     software = meta["software_information"]
     commit = software["struphy_commit"][:8]
@@ -81,9 +83,15 @@ def _execution(directory: Path, meta: dict, manifest_dir: Path, images: list[str
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("root", type=Path, help="the profiling-data checkout")
-    parser.add_argument("-o", "--output", type=Path, default=Path("catalogue.profiling-data.yaml"))
-    parser.add_argument("--case", action="append", help="a test case identifier (default: all)")
-    parser.add_argument("--last", type=int, default=None, help="only the newest N executions of a case")
+    parser.add_argument(
+        "-o", "--output", type=Path, default=Path("catalogue.profiling-data.yaml")
+    )
+    parser.add_argument(
+        "--case", action="append", help="a test case identifier (default: all)"
+    )
+    parser.add_argument(
+        "--last", type=int, default=None, help="only the newest N executions of a case"
+    )
     parser.add_argument(
         "--images",
         default="*.png",
@@ -108,7 +116,8 @@ def main(argv=None) -> int:
     entries = []
     for identifier, found in cases.items():
         executions = [
-            _execution(directory, meta, manifest_dir, images) for directory, meta in found
+            _execution(directory, meta, manifest_dir, images)
+            for directory, meta in found
         ]
         executions = [item for item in executions if item["runs"]]
         if args.last:
@@ -156,7 +165,11 @@ def main(argv=None) -> int:
         yaml.safe_dump(document, sort_keys=False, allow_unicode=True, width=100),
         encoding="utf-8",
     )
-    runs = sum(len(item["runs"]) for entry in entries for item in entry.get("executions", [entry]))
+    runs = sum(
+        len(item["runs"])
+        for entry in entries
+        for item in entry.get("executions", [entry])
+    )
     print(f"Wrote {len(entries)} cases ({runs} runs) to {args.output}")
     return 0
 
