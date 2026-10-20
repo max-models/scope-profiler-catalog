@@ -1,17 +1,17 @@
-"""Write a catalogue manifest for a checkout of struphy's ``profiling-data`` repository.
+"""Write a catalogue manifest for a checkout of a repository of profiling-job folders.
 
-Each directory of that repository is one execution of a test case: ``case_metadata.json`` names
-the case, its commit and its runs, and every run's folder holds a ``runNN.h5`` profile, plots as
-PNG files and the ``parameters.py`` the job used. Directories of the same case become the
+Each folder is one execution of a test case. Its ``case_metadata.json`` names the case, the commit
+of the code that was profiled and the runs, and every run's folder holds a ``runNN.h5`` profile,
+plots as PNG files and the ``parameters.py`` the job used. Folders of the same case become the
 executions of one catalogue case, so a case that is run again and again keeps one page:
 
-    git clone git@github.com:struphy-hub/profiling-data
-    python scripts/import_profiling_data.py profiling-data -o catalogue.profiling-data.yaml \\
-        --case poisson_cube_strong_scaling --last 4 --images 'phi_slices_xy.png,rhs_3d.png'
+    python scripts/import_profiling_data.py path/to/profiling-data -o catalogue.profiling-data.yaml \\
+        --case my_case --last 4 --images 'phi_slices_xy.png,rhs_3d.png' \\
+        --code-url 'https://github.com/my-org/my-code/tree/{commit}'
     uv run scope-profiler site catalogue.profiling-data.yaml -o docs
 
-The result is a local manifest (git-ignored): the profiling data is large and stays out of this
-repository.
+The result is a local manifest (git-ignored): profiling data is large and stays out of this
+repository. Adapt the few lines that read ``case_metadata.json`` for another layout.
 """
 
 from __future__ import annotations
@@ -25,7 +25,10 @@ from pathlib import Path
 
 import yaml
 
-STRUPHY = "https://github.com/struphy-hub/struphy"
+
+def _find(section: dict, suffix: str):
+    """The value of the key of ``section`` that ends in ``suffix`` (``code_commit`` for ``_commit``)."""
+    return next((v for k, v in section.items() if k.endswith(suffix) and v), None)
 
 
 def _words(name: str) -> str:
@@ -42,10 +45,12 @@ def _scaling(identifier: str) -> str:
     return "strong"
 
 
-def _execution(directory: Path, meta: dict, manifest_dir: Path, images: list[str]) -> dict:
+def _execution(
+    directory: Path, meta: dict, manifest_dir: Path, images: list[str]
+) -> dict:
     general = meta["general_information"]
     software = meta["software_information"]
-    commit = software["struphy_commit"][:8]
+    commit = (_find(software, "_commit") or "")[:8]
     parameters = directory / "parameters.py"
     runs = []
     for entry in sorted(meta["runs"], key=lambda run: run["launch_id"]):
@@ -70,7 +75,7 @@ def _execution(directory: Path, meta: dict, manifest_dir: Path, images: list[str
         "label": f"{stamp[:10]} {stamp[11:16]}",
         "date": stamp,
         "info": {
-            "commit": commit,
+            "commit": commit or None,
             "cluster": meta["hardware_information"].get("cluster_name"),
             "language": software.get("pyccel_language"),
         },
@@ -81,14 +86,25 @@ def _execution(directory: Path, meta: dict, manifest_dir: Path, images: list[str
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("root", type=Path, help="the profiling-data checkout")
-    parser.add_argument("-o", "--output", type=Path, default=Path("catalogue.profiling-data.yaml"))
-    parser.add_argument("--case", action="append", help="a test case identifier (default: all)")
-    parser.add_argument("--last", type=int, default=None, help="only the newest N executions of a case")
+    parser.add_argument(
+        "-o", "--output", type=Path, default=Path("catalogue.profiling-data.yaml")
+    )
+    parser.add_argument(
+        "--case", action="append", help="a test case identifier (default: all)"
+    )
+    parser.add_argument(
+        "--last", type=int, default=None, help="only the newest N executions of a case"
+    )
     parser.add_argument(
         "--images",
         default="*.png",
         help="comma-separated globs of the images to show on a run's page (default: all PNGs)",
     )
+    parser.add_argument(
+        "--code-url",
+        help="a link shown at the bottom of each case, with {commit} for the newest commit",
+    )
+    parser.add_argument("--title", default="Profiling data")
     parser.add_argument("--base", default="/scope-profiler-catalog")
     args = parser.parse_args(argv)
 
@@ -108,7 +124,8 @@ def main(argv=None) -> int:
     entries = []
     for identifier, found in cases.items():
         executions = [
-            _execution(directory, meta, manifest_dir, images) for directory, meta in found
+            _execution(directory, meta, manifest_dir, images)
+            for directory, meta in found
         ]
         executions = [item for item in executions if item["runs"]]
         if args.last:
@@ -122,7 +139,7 @@ def main(argv=None) -> int:
             "id": identifier,
             "title": general["test_case_name"],
             "description": general["test_case_description"],
-            "group": _words(general.get("struphy_model_used") or "Struphy"),
+            "group": _words(_find(general, "_model_used") or "Cases"),
             "tags": [
                 tag
                 for tag in (
@@ -132,13 +149,15 @@ def main(argv=None) -> int:
                 if tag
             ],
             "scaling": _scaling(identifier),
-            "code": [
-                {
-                    "url": f"{STRUPHY}/tree/{software['struphy_commit']}",
-                    "label": f"struphy @ {software['struphy_commit'][:8]}",
-                }
-            ],
         }
+        commit = _find(software, "_commit")
+        if args.code_url and commit:
+            entry["code"] = [
+                {
+                    "url": args.code_url.format(commit=commit),
+                    "label": f"code @ {commit[:8]}",
+                }
+            ]
         if len(executions) == 1:
             entry["info"] = executions[0]["info"]
             entry["runs"] = executions[0]["runs"]
@@ -147,8 +166,8 @@ def main(argv=None) -> int:
         entries.append(entry)
 
     document = {
-        "title": "Struphy profiling data",
-        "description": "Profiling runs of the Struphy test cases.",
+        "title": args.title,
+        "description": "Profiling runs of the test cases.",
         "base": args.base,
         "cases": entries,
     }
@@ -156,7 +175,11 @@ def main(argv=None) -> int:
         yaml.safe_dump(document, sort_keys=False, allow_unicode=True, width=100),
         encoding="utf-8",
     )
-    runs = sum(len(item["runs"]) for entry in entries for item in entry.get("executions", [entry]))
+    runs = sum(
+        len(item["runs"])
+        for entry in entries
+        for item in entry.get("executions", [entry])
+    )
     print(f"Wrote {len(entries)} cases ({runs} runs) to {args.output}")
     return 0
 

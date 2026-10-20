@@ -114,18 +114,20 @@ with sync_playwright() as playwright:
     )
     check("no script errors on a run page", not errors, errors[:3])
 
-    # One run's durations are stacked by default; the checkbox groups them.
+    # One run's durations start in one colour; the checkbox splits the bars into segments.
     page.goto(f"{BASE}/catalogue/solvers/poisson-strong/np4/", wait_until="networkidle")
     page.wait_for_timeout(2000)
     box = page.locator(".chart-stack-box").first
-    check("a run's durations are stacked by default", box.is_checked())
+    check("a run's durations are not stacked by default", not box.is_checked())
     panel_id = box.get_attribute("data-chart")
-    box.uncheck()
-    page.wait_for_timeout(1500)
-    segments = page.evaluate(
+    names = (
         f"[...new Set(document.getElementById('{panel_id}').data.map((t) => t.name))]"
     )
-    check("unticking draws the bars without segments", "self" not in segments, segments)
+    check("the bars start without segments", "self" not in page.evaluate(names))
+    box.check()
+    page.wait_for_timeout(1500)
+    segments = page.evaluate(names)
+    check("ticking splits the bars into segments", "self" in segments, segments)
 
     # The showcase run: detail rows, line profile, hardware counters.
     errors.clear()

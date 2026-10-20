@@ -353,8 +353,10 @@ function init() {
 	const state = { base: 0, cand: count - 1, all: false, metric: 'total', order: 'tree' };
 	const query = new URLSearchParams(window.location.search);
 	const fromQuery = (name) => (query.has(name) && labels.includes(query.get(name)) ? labels.indexOf(query.get(name)) : null);
-	state.base = fromQuery('base') ?? state.base;
-	state.cand = fromQuery('cand') ?? state.cand;
+	// A page can say which pair to open on (the same run in two executions, say).
+	const fromDefault = (name) => (dataset.default && labels.includes(dataset.default[name]) ? labels.indexOf(dataset.default[name]) : null);
+	state.base = fromQuery('base') ?? fromDefault('base') ?? state.base;
+	state.cand = fromQuery('cand') ?? fromDefault('cand') ?? state.cand;
 	if (state.base === state.cand) state.cand = state.base === 0 ? count - 1 : 0;
 	if (query.get('runs') === 'all' && canShowAll) state.all = true;
 	if (query.get('runs') === 'pair') state.all = false;
