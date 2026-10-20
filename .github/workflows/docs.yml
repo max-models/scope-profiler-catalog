@@ -34,7 +34,9 @@ jobs:
         catalogue/solvers/poisson-strong/index.html
         catalogue/solvers/poisson-strong/np1/index.html
         catalogue/solvers/poisson-strong/np4/index.html
-        catalogue/solvers/poisson-strong/01-speedup.0.plot.json
+        catalogue/solvers/poisson-strong/02-speedup.0.plot.json
+        catalogue/solvers/poisson-nightly/index.html
+        catalogue/solvers/poisson-nightly/compare/index.html
         catalogue/solvers/poisson-hybrid/index.html
         catalogue/solvers/vlasov-cpu-gpu/index.html
         catalogue/solvers/vlasov-cpu-gpu/cpu-node/index.html
