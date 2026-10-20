@@ -3707,7 +3707,7 @@ wheels = [
 [[package]]
 name = "scope-profiler"
 version = "0.7.4"
-source = { git = "https://github.com/max-models/scope-profiler?branch=devel#c284c752c0f4773d3a9e543a5a7d7ea541227b48" }
+source = { git = "https://github.com/max-models/scope-profiler?branch=devel#6803b2ce7f28fab62d7bd42c4ba91bf4cf09d99d" }
 dependencies = [
     { name = "h5py" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
