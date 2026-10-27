@@ -43,6 +43,6 @@ jobs:
 
       - name: Check the pages in a browser
         run: |
-          (cd docs && npx astro preview --port 4399 &) 
+          (cd docs && npx astro preview --port 4399 &)
           sleep 8
           uv run --with playwright python scripts/ui_smoke.py http://localhost:4399/scope-profiler-catalog

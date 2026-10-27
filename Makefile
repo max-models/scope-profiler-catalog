@@ -20,9 +20,10 @@ check:  ## validate catalogue.yaml and the files it lists
 catalogue: data  ## write the catalogue pages and chart data into docs/
 	uv run scope-profiler site catalogue.yaml -o docs
 
-lint:  ## ruff
+lint:  ## ruff and ssort
 	uv run ruff check .
 	uv run ruff format --check .
+	uvx ssort --check --diff .
 
 ui-smoke: docs-build  ## open the built site in a browser and check that its pages work (needs playwright)
 	cd docs && (npm run preview -- --port 4399 & echo $$! > .preview.pid)
