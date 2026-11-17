@@ -44,6 +44,12 @@ Push to `devel` and the docs workflow builds the site and deploys it.
 
 ## What stays the same
 
-The pages in `docs/src/content/docs/catalogue/` and the chart data in `docs/public/catalogue/`
-are generated and ignored by git; everything else is yours to change, including the
-report components in `docs/src/components/report/`, which draw the pages from their data.
+The pages in `docs/src/content/docs/catalogue/`, the chart data in `docs/public/catalogue/` and
+the components that draw the pages from their data, in `docs/src/components/scope-profiler/`, are
+written by `scope-profiler site` and ignored by git; everything else is yours to change. The
+components ship with scope-profiler, so a newer scope-profiler brings the pages and their
+components up to date together.
+
+A catalogue does not need a site of its own: see
+[a section of your docs](/scope-profiler-catalog/guide/docs-section/) to put it into a code's
+documentation instead.

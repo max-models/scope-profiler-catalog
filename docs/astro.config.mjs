@@ -27,6 +27,7 @@ export default defineDocs({
 				{ label: 'Use this template', slug: 'guide/use-this-template' },
 				{ label: 'The manifest', slug: 'guide/manifest' },
 				{ label: 'Data and the workflow', slug: 'guide/workflow' },
+				{ label: 'A section of your docs', slug: 'guide/docs-section' },
 			],
 		},
 	],

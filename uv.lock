@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14' and sys_platform == 'win32'",
@@ -3706,8 +3706,8 @@ wheels = [
 
 [[package]]
 name = "scope-profiler"
-version = "0.7.4"
-source = { git = "https://github.com/max-models/scope-profiler?branch=devel#6803b2ce7f28fab62d7bd42c4ba91bf4cf09d99d" }
+version = "0.8.0"
+source = { git = "https://github.com/max-models/scope-profiler?branch=devel#186dd30df4dfaa09e41c8ce20c19ce9e7d54456d" }
 dependencies = [
     { name = "h5py" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },

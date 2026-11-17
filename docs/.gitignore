@@ -2,8 +2,10 @@
 dist/
 .astro/
 node_modules/
-# written by `scope-profiler site` from catalogue.yaml (regenerated in CI)
+# written by `scope-profiler site` from catalogue.yaml (regenerated in CI), with the components
+# that draw the pages
 src/content/docs/catalogue/
 public/catalogue/
+src/components/scope-profiler/
 # the preview server that `make ui-smoke` starts
 .preview.pid

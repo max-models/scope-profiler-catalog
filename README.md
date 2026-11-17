@@ -21,7 +21,9 @@ How it works:
 
 ## Use it
 
-Create a repository from this template, set `repo` (and `title`) in `docs/astro.config.mjs`,
+A code that already has a docs site can put its catalogue there instead, as a "Profiling"
+section (`scope-profiler site --section profiling`); the guide page "A section of your docs" says
+how. For a site of its own, create a repository from this template, set `repo` (and `title`) in `docs/astro.config.mjs`,
 describe your runs in `catalogue.yaml`, replace the body of `scripts/fetch_data.sh` with the way
 your files arrive, and enable GitHub Pages (source: GitHub Actions). The guide on the site goes
 through it step by step.
