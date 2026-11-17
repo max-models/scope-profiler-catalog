@@ -28,10 +28,11 @@ urls.Source = "https://github.com/max-models/scope-profiler-catalog"
 [tool.uv]
 package = false
 
-# `scope-profiler site` is not in a release yet: follow the development branch, and drop this
-# table once a scope-profiler release has it (then require that version above).
+# `scope-profiler site` with the components it ships is not in a release yet: follow the
+# development branch, and drop this table once a scope-profiler release has it (then require
+# that version above).
 [tool.uv.sources]
-scope-profiler = { git = "https://github.com/max-models/scope-profiler", branch = "devel" }
+scope-profiler = { git = "https://github.com/max-models/scope-profiler", branch = "claude/profiling-catalog-astro-embed-9fills" }
 
 [tool.ruff]
 target-version = "py310"
